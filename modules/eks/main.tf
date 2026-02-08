@@ -366,29 +366,29 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
-resource "kubernetes_config_map_v1" "aws_auth" {
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
+# resource "kubernetes_config_map_v1" "aws_auth" {
+#   metadata {
+#     name      = "aws-auth"
+#     namespace = "kube-system"
+#   }
 
-  data = {
-    mapRoles = yamlencode([
-      {
-        rolearn  = aws_iam_role.eks_nodes.arn
-        username = "system:node:{{EC2PrivateDNSName}}"
-        groups   = [
-          "system:bootstrappers",
-          "system:nodes"
-        ]
-      }
-    ])
-  }
+#   data = {
+#     mapRoles = yamlencode([
+#       {
+#         rolearn  = aws_iam_role.eks_nodes.arn
+#         username = "system:node:{{EC2PrivateDNSName}}"
+#         groups   = [
+#           "system:bootstrappers",
+#           "system:nodes"
+#         ]
+#       }
+#     ])
+#   }
 
-  depends_on = [
-    aws_eks_node_group.core
-  ]
-}
+#   depends_on = [
+#     aws_eks_node_group.core
+#   ]
+# }
 
 
 ###############################
@@ -413,6 +413,10 @@ resource "aws_eks_cluster" "this" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster.arn
   version  = "1.32"
+
+  access_config {
+    authentication_mode = "API_AND_CONFIG_MAP"
+  }
 
   vpc_config {
     subnet_ids              = var.private_app_subnet_ids
@@ -568,7 +572,6 @@ resource "aws_iam_openid_connect_provider" "eks" {
   ]
 }
 
-
 resource "aws_iam_policy" "alb_controller" {
   name        = "${var.cluster_name}-alb-controller"
   description = "IAM policy for AWS Load Balancer Controller"
@@ -610,20 +613,20 @@ resource "aws_iam_role_policy_attachment" "alb_attach" {
 ## Metric Server ##
 ###############################
 
-resource "helm_release" "metrics_server" {
-  name       = "metrics-server"
-  namespace  = "kube-system"
-  repository = "https://kubernetes-sigs.github.io/metrics-server/"
-  chart      = "metrics-server"
-  version    = "3.12.1"
+# resource "helm_release" "metrics_server" {
+#   name       = "metrics-server"
+#   namespace  = "kube-system"
+#   repository = "https://kubernetes-sigs.github.io/metrics-server/"
+#   chart      = "metrics-server"
+#   version    = "3.12.1"
 
-  values = [yamlencode({
-    args = [
-      "--kubelet-insecure-tls",   
-      "--kubelet-preferred-address-types=InternalIP"
-    ]
-  })]
-}
+#   values = [yamlencode({
+#     args = [
+#       "--kubelet-insecure-tls",   
+#       "--kubelet-preferred-address-types=InternalIP"
+#     ]
+#   })]
+# }
 
 ###############################
 ## Allow EKS API from private_app
@@ -643,23 +646,20 @@ resource "aws_security_group_rule" "eks_api_from_private_app" {
 ## EKS Admin permission ##
 ###############################
 
-# variable "admin_role_arn" {
-#   type        = string
-#   description = "IAM role with EKS admin access"
-# }
 
-# resource "aws_eks_access_entry" "admin" {
-#   cluster_name  = aws_eks_cluster.this.name
-#   principal_arn = var.admin_role_arn
-#   type          = "STANDARD"
-# }
+resource "aws_eks_access_entry" "admin_role" {
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = "arn:aws:iam::495711089104:role/dev-eks-admin-role"
+  type          = "STANDARD"
+}
 
-# resource "aws_eks_access_policy_association" "admin" {
-#   cluster_name  = aws_eks_cluster.this.name
-#   principal_arn = var.admin_role_arn
-#   policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+resource "aws_eks_access_policy_association" "admin_role" {
+  cluster_name  = aws_eks_cluster.this.name
+  principal_arn = aws_eks_access_entry.admin_role.principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
 
-#   access_scope {
-#     type = "cluster"
-#   }
-# }
+  access_scope {
+    type = "cluster"
+  }
+}
+
