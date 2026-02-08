@@ -53,7 +53,7 @@ resource "aws_kms_alias" "eks" {
 resource "aws_eks_cluster" "this" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster.arn
-  version  = "1.32"
+  version  = "1.33"
 
   access_config {
     authentication_mode = "API_AND_CONFIG_MAP"

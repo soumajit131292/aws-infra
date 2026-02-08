@@ -8,3 +8,4 @@ export AWS_SECRET_ACCESS_KEY=$(echo $CREDS | jq -r .Credentials.SecretAccessKey)
 export AWS_SESSION_TOKEN=$(echo $CREDS | jq -r .Credentials.SessionToken)
 
 aws eks update-kubeconfig --region us-east-1 --name dev-accesshub-cluster
+
