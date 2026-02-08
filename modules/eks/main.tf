@@ -485,9 +485,9 @@ resource "aws_eks_node_group" "core" {
   capacity_type  = "ON_DEMAND"
 
   scaling_config {
-    min_size     = 3   # one per AZ
-    desired_size = 3
-    max_size     = 6
+    min_size     = 1   # one per AZ
+    desired_size = 1
+    max_size     = 1
   }
 
   update_config {
