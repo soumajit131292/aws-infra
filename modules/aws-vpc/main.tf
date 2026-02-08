@@ -120,13 +120,13 @@ resource "aws_route_table" "private_app" {
 ###############################
 ## FORCE VPC-LOCAL ROUTE (CRITICAL)
 ###############################
-resource "aws_route" "private_app_local" {
-  for_each = aws_route_table.private_app
+# resource "aws_route" "private_app_local" {
+#   for_each = aws_route_table.private_app
 
-  route_table_id         = each.value.id
-  destination_cidr_block = var.vpc_cidr
-  gateway_id             = "local"
-}
+#   route_table_id         = each.value.id
+#   destination_cidr_block = var.vpc_cidr
+#   gateway_id             = "local"
+# }
 
 resource "aws_route_table_association" "private_app" {
   for_each = aws_subnet.private_app
@@ -725,10 +725,10 @@ resource "aws_network_acl_rule" "app_in_all_vpc" {
   cidr_block     = var.vpc_cidr
 }
 
-resource "aws_route" "fw_to_vpc" {
-  for_each = aws_route_table.firewall
+# resource "aws_route" "fw_to_vpc" {
+#   for_each = aws_route_table.firewall
 
-  route_table_id         = each.value.id
-  destination_cidr_block = var.vpc_cidr
-  gateway_id             = "local"
-}
+#   route_table_id         = each.value.id
+#   destination_cidr_block = var.vpc_cidr
+#   gateway_id             = "local"
+# }

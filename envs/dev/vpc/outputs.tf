@@ -12,3 +12,8 @@ output "private_db_subnet_ids" {
   description = "Private database subnet IDs"
   value       = module.network.private_db_subnet_ids
 }
+
+output "private_app_sg_id" {
+  description = "Private application security group ID"
+  value       = module.network.private_app_sg_id
+}

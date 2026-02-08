@@ -366,7 +366,7 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
-resource "kubernetes_config_map" "aws_auth" {
+resource "kubernetes_config_map_v1" "aws_auth" {
   metadata {
     name      = "aws-auth"
     namespace = "kube-system"
@@ -389,6 +389,7 @@ resource "kubernetes_config_map" "aws_auth" {
     aws_eks_node_group.core
   ]
 }
+
 
 ###############################
 ## KMS key – secrets encryption ##
@@ -604,30 +605,6 @@ resource "aws_iam_role_policy_attachment" "alb_attach" {
   policy_arn = aws_iam_policy.alb_controller.arn
 }
 
-resource "kubernetes_config_map_v1" "aws_auth" {
-  metadata {
-    name      = "aws-auth"
-    namespace = "kube-system"
-  }
-
-  data = {
-    mapRoles = yamlencode([
-      {
-        rolearn  = aws_iam_role.eks_nodes.arn
-        username = "system:node:{{EC2PrivateDNSName}}"
-        groups   = [
-          "system:bootstrappers",
-          "system:nodes"
-        ]
-      }
-    ])
-  }
-
-  depends_on = [
-    aws_eks_node_group.core
-  ]
-}
-
 
 ###############################
 ## Metric Server ##
@@ -652,13 +629,13 @@ resource "helm_release" "metrics_server" {
 ## Allow EKS API from private_app
 ###############################
 resource "aws_security_group_rule" "eks_api_from_private_app" {
-  type                     = "ingress"
-  from_port                = 443
-  to_port                  = 443
-  protocol                 = "tcp"
+  type      = "ingress"
+  from_port = 443
+  to_port   = 443
+  protocol  = "tcp"
 
   security_group_id         = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
-  source_security_group_id = aws_security_group.app.id
+  source_security_group_id = var.private_app_sg_id
 }
 
 

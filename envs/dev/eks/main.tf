@@ -27,6 +27,8 @@ module "eks" {
 
   cluster_name = var.cluster_name
   region       = var.region
+  private_app_sg_id = data.terraform_remote_state.vpc.outputs.private_app_sg_id
+
 
   vpc_id = data.terraform_remote_state.vpc.outputs.vpc_id
   private_app_subnet_ids = data.terraform_remote_state.vpc.outputs.private_app_subnet_ids
