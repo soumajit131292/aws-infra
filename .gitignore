@@ -19,7 +19,7 @@ crash.*.log
 terraform.rc
 
 # Override files (used by terraform plan/apply -var-file)
-*.tfvars
+# *.tfvars
 *.tfvars.json
 
 # Lock file (KEEP or IGNORE? see note below)
