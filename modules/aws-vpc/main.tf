@@ -117,6 +117,16 @@ resource "aws_route_table" "private_app" {
     Name = "private-app-rt-${each.key}"
   })
 }
+###############################
+## FORCE VPC-LOCAL ROUTE (CRITICAL)
+###############################
+resource "aws_route" "private_app_local" {
+  for_each = aws_route_table.private_app
+
+  route_table_id         = each.value.id
+  destination_cidr_block = var.vpc_cidr
+  gateway_id             = "local"
+}
 
 resource "aws_route_table_association" "private_app" {
   for_each = aws_subnet.private_app
