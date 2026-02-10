@@ -271,7 +271,7 @@ resource "aws_security_group_rule" "eks_api_from_private_app" {
 
 resource "aws_eks_access_entry" "admin_role" {
   cluster_name  = aws_eks_cluster.this.name
-  principal_arn = "arn:aws:iam::495711089104:role/dev-eks-admin-role"
+  principal_arn = "arn:aws:iam::495711089104:role/dev-vpc-ec2-ssm-role"
   type          = "STANDARD"
 }
 
@@ -284,4 +284,3 @@ resource "aws_eks_access_policy_association" "admin_role" {
     type = "cluster"
   }
 }
-
