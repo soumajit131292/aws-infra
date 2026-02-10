@@ -31,8 +31,6 @@
       ],
       "Resource": "*"
     },
-
-    // 🔴 MISSING BLOCK — REQUIRED FOR ALB CREATION
     {
       "Effect": "Allow",
       "Action": [
