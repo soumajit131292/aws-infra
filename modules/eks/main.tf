@@ -53,7 +53,9 @@ resource "aws_kms_alias" "eks" {
 resource "aws_eks_cluster" "this" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster.arn
-  version  = "1.33"
+  version  = "1.34"
+  
+  deletion_protection = true
 
   access_config {
     authentication_mode = "API_AND_CONFIG_MAP"
@@ -162,7 +164,6 @@ resource "aws_eks_addon" "kube_proxy" {
   addon_name    = "kube-proxy"
   #addon_version = "v1.29.0-eksbuild.1"
 }
-
 
 resource "aws_iam_role" "ebs_csi" {
   name = "${var.cluster_name}-ebs-csi"
