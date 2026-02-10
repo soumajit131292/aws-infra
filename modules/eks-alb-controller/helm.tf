@@ -3,11 +3,7 @@ resource "helm_release" "alb_controller" {
   namespace  = "kube-system"
   repository = "https://aws.github.io/eks-charts"
   chart      = "aws-load-balancer-controller"
-  version    = "1.7.2" # pin version (important)
-
-  depends_on = [
-    kubernetes_service_account.alb_controller
-  ]
+  version    = "1.7.2" 
 
   set {
     name  = "clusterName"
@@ -31,8 +27,8 @@ resource "helm_release" "alb_controller" {
 
   set {
     name  = "serviceAccount.name"
-    value = "aws-load-balancer-controller"
-  }
+    value = kubernetes_service_account.alb_controller.metadata[0].name
+  }  
 
   set {
     name  = "replicaCount"
