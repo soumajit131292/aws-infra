@@ -26,3 +26,8 @@ output "oidc_issuer_url" {
   description = "OIDC issuer URL"
   value       = module.eks.oidc_issuer_url
 }
+
+output "alb_controller_role_arn" {
+  description = "IAM role ARN used by AWS Load Balancer Controller"
+  value       = module.eks.alb_controller_role_arn
+}

@@ -17,3 +17,8 @@ output "oidc_provider_arn" {
 output "oidc_issuer_url" {
   value = aws_eks_cluster.this.identity[0].oidc[0].issuer
 }
+
+output "alb_controller_role_arn" {
+  description = "IAM role ARN used by AWS Load Balancer Controller"
+  value       = aws_iam_role.alb_controller.arn
+}
