@@ -612,6 +612,7 @@ resource "aws_networkfirewall_rule_group" "stateful" {
   rule_group {
     rules_source {
       rules_string = <<EOF
+pass tcp ${var.vpc_cidr} any -> ${var.vpc_cidr} 80 (sid:100;)
 pass tcp any any -> any 443 (sid:1;)
 pass udp any any -> any 53  (sid:2;)
 pass tcp any any -> any 53  (sid:3;)
@@ -725,10 +726,3 @@ resource "aws_network_acl_rule" "app_in_all_vpc" {
   cidr_block     = var.vpc_cidr
 }
 
-# resource "aws_route" "fw_to_vpc" {
-#   for_each = aws_route_table.firewall
-
-#   route_table_id         = each.value.id
-#   destination_cidr_block = var.vpc_cidr
-#   gateway_id             = "local"
-# }
