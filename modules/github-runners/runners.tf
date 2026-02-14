@@ -1,0 +1,55 @@
+resource "kubernetes_manifest" "runner" {
+  manifest = {
+    apiVersion = "actions.summerwind.dev/v1alpha1"
+    kind       = "RunnerDeployment"
+    metadata = {
+      name      = "shared-runner"
+      namespace = "actions-runner-system"
+    }
+    spec = {
+      replicas = 1
+      template = {
+        spec = {
+          organization = var.github_org
+          ephemeral    = true
+          labels       = ["eks", "shared"]
+
+          resources = {
+            requests = {
+              cpu    = "500m"
+              memory = "1Gi"
+            }
+            limits = {
+              cpu    = "2"
+              memory = "4Gi"
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.arc]
+}
+resource "kubernetes_manifest" "runner_autoscaler" {
+  manifest = {
+    apiVersion = "actions.summerwind.dev/v1alpha1"
+    kind       = "HorizontalRunnerAutoscaler"
+    metadata = {
+      name      = "shared-runner-autoscaler"
+      namespace = "actions-runner-system"
+    }
+    spec = {
+      scaleTargetRef = {
+        name = "shared-runner"
+      }
+      minReplicas = 1
+      maxReplicas = var.runner_max_replicas
+      metrics = [{
+        type               = "PercentageRunnersBusy"
+        scaleUpThreshold   = "70"
+        scaleDownThreshold = "30"
+      }]
+    }
+  }
+}
