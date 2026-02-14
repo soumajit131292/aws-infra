@@ -37,7 +37,7 @@ variable "timeout" {
 variable "atomic" {
   description = "If true, uninstall release on failure"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "values_files" {

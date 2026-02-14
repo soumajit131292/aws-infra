@@ -41,7 +41,7 @@ resource "helm_release" "argocd" {
   create_namespace = var.create_namespace
 
   atomic          = var.atomic
-  cleanup_on_fail = true
+  cleanup_on_fail = false
   wait            = true
   timeout         = var.timeout
 
