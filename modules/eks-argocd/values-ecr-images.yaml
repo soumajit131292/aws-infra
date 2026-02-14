@@ -8,24 +8,19 @@ dex:
     repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/dex
     tag: v2.44.0
 
-# Use redis-ha so all runtime images are pinned to the 4 mirrored ECR images.
 redis:
-  enabled: false
-
-redis-ha:
   enabled: true
   image:
     repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/redis
     tag: 8.2.3-alpine
   exporter:
     enabled: false
-  haproxy:
-    enabled: true
-    image:
-      repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/haproxy
-      tag: 3.0.8-alpine
+
+redis-ha:
+  enabled: false
 
 redisSecretInit:
+  enabled: false
   image:
     repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/argocd
     tag: v3.3.0

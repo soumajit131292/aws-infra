@@ -45,3 +45,9 @@ variable "set" {
   type        = map(string)
   default     = {}
 }
+
+variable "redis_auth_secret_name" {
+  description = "Name of Redis auth secret expected by Argo CD chart"
+  type        = string
+  default     = "argocd-redis"
+}

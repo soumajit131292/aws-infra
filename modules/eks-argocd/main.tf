@@ -8,6 +8,34 @@ locals {
   )
 }
 
+resource "kubernetes_namespace" "argocd" {
+  count = var.create_namespace ? 1 : 0
+
+  metadata {
+    name = var.namespace
+  }
+}
+
+resource "random_password" "redis_auth" {
+  length  = 32
+  special = false
+}
+
+resource "kubernetes_secret" "argocd_redis_auth" {
+  metadata {
+    name      = var.redis_auth_secret_name
+    namespace = var.namespace
+  }
+
+  data = {
+    auth = random_password.redis_auth.result
+  }
+
+  type = "Opaque"
+
+  depends_on = [kubernetes_namespace.argocd]
+}
+
 resource "helm_release" "argocd" {
   name             = var.release_name
   namespace        = var.namespace
@@ -29,4 +57,6 @@ resource "helm_release" "argocd" {
       value = set.value
     }
   }
+
+  depends_on = [kubernetes_secret.argocd_redis_auth]
 }
