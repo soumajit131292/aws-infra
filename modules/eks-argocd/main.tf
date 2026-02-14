@@ -9,7 +9,7 @@ locals {
 }
 
 resource "kubernetes_namespace" "argocd" {
-  count = var.create_namespace ? 1 : 0
+  count = var.create_namespace && var.manage_namespace ? 1 : 0
 
   metadata {
     name = var.namespace
@@ -32,8 +32,6 @@ resource "kubernetes_secret" "argocd_redis_auth" {
   }
 
   type = "Opaque"
-
-  depends_on = [kubernetes_namespace.argocd]
 }
 
 resource "helm_release" "argocd" {

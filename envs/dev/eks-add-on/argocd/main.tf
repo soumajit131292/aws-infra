@@ -5,6 +5,7 @@ module "argocd" {
   namespace        = var.namespace
   chart_path       = var.chart_path
   create_namespace = var.create_namespace
+  manage_namespace = var.manage_namespace
   timeout          = var.timeout
   values_files     = var.values_files
   values           = var.values

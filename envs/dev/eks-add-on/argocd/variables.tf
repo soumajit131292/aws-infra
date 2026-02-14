@@ -51,3 +51,8 @@ variable "set" {
   type        = map(string)
   default     = {}
 }
+
+variable "manage_namespace" {
+  description = "Whether Terraform should explicitly manage the namespace resource"
+  type        = bool
+}

@@ -22,6 +22,12 @@ variable "create_namespace" {
   default     = true
 }
 
+variable "manage_namespace" {
+  description = "Whether Terraform should explicitly manage the namespace resource"
+  type        = bool
+  default     = false
+}
+
 variable "timeout" {
   description = "Time in seconds to wait for Helm release operations"
   type        = number
