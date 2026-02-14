@@ -34,6 +34,12 @@ variable "timeout" {
   default     = 600
 }
 
+variable "atomic" {
+  description = "If true, uninstall release on failure"
+  type        = bool
+  default     = true
+}
+
 variable "values_files" {
   description = "List of paths to values files that will be loaded with file()"
   type        = list(string)

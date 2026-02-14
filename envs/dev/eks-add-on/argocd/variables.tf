@@ -34,6 +34,12 @@ variable "timeout" {
   default     = 600
 }
 
+variable "atomic" {
+  description = "If true, uninstall release on failure"
+  type        = bool
+  default     = false
+}
+
 variable "values_files" {
   description = "Additional values files"
   type        = list(string)
@@ -55,4 +61,5 @@ variable "set" {
 variable "manage_namespace" {
   description = "Whether Terraform should explicitly manage the namespace resource"
   type        = bool
+  default     = false
 }

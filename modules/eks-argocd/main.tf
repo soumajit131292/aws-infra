@@ -40,7 +40,7 @@ resource "helm_release" "argocd" {
   chart            = local.chart_path
   create_namespace = var.create_namespace
 
-  atomic          = true
+  atomic          = var.atomic
   cleanup_on_fail = true
   wait            = true
   timeout         = var.timeout
