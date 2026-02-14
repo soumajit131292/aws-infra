@@ -1,24 +1,43 @@
 provider "aws" {
-  region = "us-east-1"
+  region = var.aws_region
 }
+
+data "aws_caller_identity" "current" {}
+data "aws_region" "current" {}
 
 data "aws_iam_policy_document" "github_policy" {
 
+  # Required for docker login
   statement {
     effect = "Allow"
 
     actions = [
-      "ecr:GetAuthorizationToken",
+      "ecr:GetAuthorizationToken"
+    ]
+
+    resources = ["*"]
+  }
+
+  # Required for push + repository validation
+  statement {
+    effect = "Allow"
+
+    actions = [
+      "ecr:DescribeRepositories",
       "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
       "ecr:CompleteLayerUpload",
       "ecr:UploadLayerPart",
       "ecr:InitiateLayerUpload",
       "ecr:PutImage"
     ]
 
-    resources = ["*"]
+    resources = [
+      "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/accesshub/*"
+    ]
   }
 }
+
 
 module "github_actions_role" {
   source = "../../../modules/github-oidc-role"
@@ -34,3 +53,4 @@ module "github_actions_role" {
     Environment = "prod"
   }
 }
+
