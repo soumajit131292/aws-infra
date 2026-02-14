@@ -14,3 +14,8 @@ output "private_app_sg_id" {
   description = "Security group ID for private application / Terraform runner"
   value       = aws_security_group.app.id
 }
+
+output "private_db_sg_id" {
+  description = "Security group ID for private DB resources"
+  value       = aws_security_group.db.id
+}

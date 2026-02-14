@@ -17,6 +17,11 @@ output "cluster_ca_certificate" {
   value       = module.eks.cluster_ca_certificate
 }
 
+output "cluster_security_group_id" {
+  description = "EKS cluster security group ID"
+  value       = module.eks.cluster_security_group_id
+}
+
 output "oidc_provider_arn" {
   description = "OIDC provider ARN for IRSA"
   value       = module.eks.oidc_provider_arn
