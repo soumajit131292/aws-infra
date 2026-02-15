@@ -57,3 +57,27 @@ terraform.rc
 # Logs
 ##################################
 *.log
+
+##################################
+# Ansible (generated/local-only)
+##################################
+
+# Ansible runtime/temp/cache
+.ansible/
+ansible/.ansible/
+
+# Retry artifacts
+*.retry
+ansible/*.retry
+
+# Local inventory overrides / ad-hoc vars
+ansible/inventory.ini
+ansible/inventory.local*
+ansible/group_vars/all/local.yml
+ansible/host_vars/
+
+# Vault/password and private secrets
+*.vault
+*.vault.yml
+ansible/.vault_pass*
+ansible/vault_pass*

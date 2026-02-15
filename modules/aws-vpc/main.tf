@@ -32,8 +32,8 @@ resource "aws_subnet" "public" {
   map_public_ip_on_launch = true
 
   tags = merge(var.tags, {
-    Name                        = "public-${each.key}"
-    "kubernetes.io/role/elb"    = "1"
+    Name                                        = "public-${each.key}"
+    "kubernetes.io/role/elb"                    = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
 
   })
@@ -47,8 +47,8 @@ resource "aws_subnet" "private_app" {
   availability_zone = var.azs[index(keys(var.private_app_subnets), each.key)]
 
   tags = merge(var.tags, {
-    Name                                = "private-app-${each.key}"
-    "kubernetes.io/role/internal-elb"   = "1"
+    Name                                        = "private-app-${each.key}"
+    "kubernetes.io/role/internal-elb"           = "1"
     "kubernetes.io/cluster/${var.cluster_name}" = "shared"
   })
 }
@@ -84,7 +84,7 @@ resource "aws_nat_gateway" "this" {
 ###############################
 resource "aws_route_table" "public" {
   for_each = aws_subnet.public
-  vpc_id  = aws_vpc.this.id
+  vpc_id   = aws_vpc.this.id
 
   tags = merge(var.tags, {
     Name = "public-rt-${each.key}"
@@ -111,7 +111,7 @@ resource "aws_route_table_association" "public" {
 ###############################
 resource "aws_route_table" "private_app" {
   for_each = aws_subnet.private_app
-  vpc_id  = aws_vpc.this.id
+  vpc_id   = aws_vpc.this.id
 
   tags = merge(var.tags, {
     Name = "private-app-rt-${each.key}"
@@ -371,9 +371,9 @@ resource "aws_networkfirewall_firewall" "this" {
     }
   }
   lifecycle {
-      ignore_changes = [
-        subnet_mapping
-      ]
+    ignore_changes = [
+      subnet_mapping
+    ]
   }
 
 }
@@ -472,9 +472,9 @@ resource "aws_iam_role" "flow_logs" {
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
-      Effect = "Allow"
+      Effect    = "Allow"
       Principal = { Service = "vpc-flow-logs.amazonaws.com" }
-      Action = "sts:AssumeRole"
+      Action    = "sts:AssumeRole"
     }]
   })
 }
@@ -553,6 +553,17 @@ resource "aws_network_acl_rule" "app_out_https" {
   to_port        = 443
 }
 
+resource "aws_network_acl_rule" "app_out_http" {
+  network_acl_id = aws_network_acl.private_app.id
+  rule_number    = 105
+  egress         = true
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
+  from_port      = 80
+  to_port        = 80
+}
+
 resource "aws_network_acl_rule" "app_out_dns" {
   network_acl_id = aws_network_acl.private_app.id
   rule_number    = 110
@@ -614,6 +625,7 @@ resource "aws_networkfirewall_rule_group" "stateful" {
       rules_string = <<EOF
 pass tcp ${var.vpc_cidr} any -> ${var.vpc_cidr} 80 (sid:100;)
 pass tcp any any -> any 443 (sid:1;)
+pass tcp any any -> any 80 (sid:6;)
 pass udp any any -> any 53  (sid:2;)
 pass tcp any any -> any 53  (sid:3;)
 pass udp any any -> any 123 (sid:4;)
@@ -672,10 +684,10 @@ locals {
 resource "aws_vpc_endpoint" "eks_if" {
   for_each = toset(local.eks_endpoints)
 
-  vpc_id              = aws_vpc.this.id
-  service_name        = "com.amazonaws.${var.region}.${each.key}"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = values(aws_subnet.private_app)[*].id
+  vpc_id            = aws_vpc.this.id
+  service_name      = "com.amazonaws.${var.region}.${each.key}"
+  vpc_endpoint_type = "Interface"
+  subnet_ids        = values(aws_subnet.private_app)[*].id
   # security_group_ids  = [aws_security_group.app.id]
   security_group_ids = [aws_security_group.vpce.id]
 
@@ -686,7 +698,7 @@ resource "aws_vpc_endpoint" "s3" {
   vpc_id            = aws_vpc.this.id
   service_name      = "com.amazonaws.${var.region}.s3"
   vpc_endpoint_type = "Gateway"
-  route_table_ids   = [
+  route_table_ids = [
     for rt in aws_route_table.private_app : rt.id
   ]
 }
@@ -725,4 +737,3 @@ resource "aws_network_acl_rule" "app_in_all_vpc" {
   rule_action    = "allow"
   cidr_block     = var.vpc_cidr
 }
-

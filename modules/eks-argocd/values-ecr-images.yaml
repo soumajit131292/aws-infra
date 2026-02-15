@@ -1,18 +1,18 @@
 global:
   image:
     repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/argocd
-    tag: v3.3.0
+    tag: v3.3.0-amd64-platform
 
 dex:
   image:
     repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/dex
-    tag: v2.44.0
+    tag: v2.44.0-amd64-platform
 
 redis:
   enabled: true
   image:
     repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/redis
-    tag: 8.2.3-alpine
+    tag: 8.2.3-alpine-amd64-platform
   exporter:
     enabled: false
 
@@ -23,4 +23,4 @@ redisSecretInit:
   enabled: false
   image:
     repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/argocd
-    tag: v3.3.0
+    tag: v3.3.0-amd64-platform

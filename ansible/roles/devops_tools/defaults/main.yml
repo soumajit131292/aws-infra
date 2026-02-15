@@ -1,0 +1,14 @@
+---
+devops_tools_kubectl_version: "1.29.1"
+devops_tools_kubectl_sha256: "REPLACE_REAL_SHA"
+
+devops_tools_terraform_version: "1.6.6"
+devops_tools_terraform_sha256: "REPLACE_REAL_SHA"
+
+devops_tools_helm_version: "3.14.0"
+devops_tools_helm_sha256: "REPLACE_REAL_SHA"
+
+devops_tools_docker_version: "5:24.0.7-1~ubuntu.24.04~noble"
+devops_tools_docker_gpg_expected_fingerprint: "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
+
+devops_tools_awscli_zip_url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
