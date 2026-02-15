@@ -274,7 +274,7 @@ resource "aws_networkfirewall_firewall_policy" "this" {
   name = "${var.name}-fw-policy"
 
   firewall_policy {
-    stateless_default_actions          = ["aws:drop"]
+    stateless_default_actions          = ["aws:forward_to_sfe"]
     stateless_fragment_default_actions = ["aws:forward_to_sfe"]
 
     stateless_rule_group_reference {
@@ -736,4 +736,15 @@ resource "aws_network_acl_rule" "app_in_all_vpc" {
   protocol       = "-1"
   rule_action    = "allow"
   cidr_block     = var.vpc_cidr
+}
+
+resource "aws_network_acl_rule" "app_in_http_from_vpc" {
+  network_acl_id = aws_network_acl.private_app.id
+  rule_number    = 95
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = var.vpc_cidr
+  from_port      = 80
+  to_port        = 80
 }
