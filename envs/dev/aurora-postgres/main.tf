@@ -1,10 +1,17 @@
+locals {
+  db_credentials = var.db_credentials_secret_name != "" ? jsondecode(data.aws_secretsmanager_secret_version.db_credentials[0].secret_string) : {}
+
+  resolved_master_username = var.db_credentials_secret_name != "" ? try(local.db_credentials.username, null) : var.master_username
+  resolved_master_password = var.db_credentials_secret_name != "" ? try(local.db_credentials.password, null) : var.master_password
+}
+
 module "aurora_postgres" {
   source = "../../../modules/aurora-postgres"
 
   cluster_identifier = var.cluster_identifier
   database_name      = var.database_name
-  master_username    = var.master_username
-  master_password    = var.master_password
+  master_username    = local.resolved_master_username
+  master_password    = local.resolved_master_password
   engine_version     = var.engine_version
   instance_class     = var.instance_class
   instance_count     = var.instance_count

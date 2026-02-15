@@ -25,6 +25,19 @@ variable "master_password" {
   description = "Master password for Aurora PostgreSQL"
   type        = string
   sensitive   = true
+  default     = null
+}
+
+variable "db_credentials_secret_name" {
+  description = "Optional Secrets Manager secret name containing JSON {\"username\":\"...\",\"password\":\"...\"}"
+  type        = string
+  default     = ""
+}
+
+variable "db_credentials_secret_version_stage" {
+  description = "Secret version stage to read from Secrets Manager"
+  type        = string
+  default     = "AWSCURRENT"
 }
 
 variable "engine_version" {

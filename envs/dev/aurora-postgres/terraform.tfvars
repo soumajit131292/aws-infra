@@ -1,8 +1,7 @@
 region                     = "us-east-1"
 cluster_identifier         = "dev-aurora-postgres"
 database_name              = "appdb"
-master_username            = "dbadmin"
-master_password            = "CHANGE_ME"
+db_credentials_secret_name = "dev/aurora/app-credentials"
 engine_version             = "16.4"
 instance_class             = "db.t4g.medium"
 instance_count             = 1

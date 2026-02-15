@@ -1,0 +1,16 @@
+# Optional values override to run ESO images from private ECR.
+# Enable from root module by adding this file path to values_files.
+
+image:
+  repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/external-secrets
+  tag: v2.0.0-amd64-platform
+
+webhook:
+  image:
+    repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/external-secrets
+    tag: v2.0.0-amd64-platform
+
+certController:
+  image:
+    repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/external-secrets
+    tag: v2.0.0-amd64-platform
