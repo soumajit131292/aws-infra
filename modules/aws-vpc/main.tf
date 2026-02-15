@@ -406,6 +406,8 @@ resource "aws_route" "private_to_fw" {
 }
 
 
+
+
 resource "aws_route" "fw_to_nat" {
   for_each = aws_route_table.firewall
 
@@ -631,6 +633,7 @@ resource "aws_networkfirewall_rule_group" "stateful" {
   rule_group {
     rules_source {
       rules_string = <<EOF
+
 pass tcp ${var.vpc_cidr} any -> ${var.vpc_cidr} 80 (sid:100;)
 pass tcp any any -> any 443 (sid:1;)
 pass tcp any any -> any 80 (sid:6;)
@@ -755,4 +758,15 @@ resource "aws_network_acl_rule" "app_in_http_from_vpc" {
   cidr_block     = var.vpc_cidr
   from_port      = 80
   to_port        = 80
+}
+
+resource "aws_network_acl_rule" "app_in_http_from_public" {
+  network_acl_id = aws_network_acl.private_app.id
+  rule_number    = 50
+  egress         = false
+  protocol       = "tcp"
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
+  from_port      = 30000
+  to_port        = 32767
 }
