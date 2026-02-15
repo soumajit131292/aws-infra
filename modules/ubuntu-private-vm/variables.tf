@@ -60,6 +60,12 @@ variable "install_tools" {
   default     = true
 }
 
+variable "configure_ssm_bash_environment" {
+  description = "Configure ssm-user/ubuntu with bash login shell and home profile during instance launch"
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)
