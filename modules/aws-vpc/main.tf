@@ -595,6 +595,14 @@ resource "aws_security_group" "app" {
   name   = "${var.name}-app-sg"
   vpc_id = aws_vpc.this.id
 
+  ingress {
+    description = "Allow Kubernetes NodePort range from within VPC for NLB and ELB to nodes"
+    from_port   = 30000
+    to_port     = 32767
+    protocol    = "tcp"
+    cidr_blocks = [var.vpc_cidr]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
