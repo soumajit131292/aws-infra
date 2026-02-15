@@ -6,5 +6,5 @@ timeout           = 300
 atomic            = false
 manage_namespace  = false
 set = {
-  "server.service.type" = "ClusterIP"
+  "server.service.type" = "LoadBalancer"
 }
