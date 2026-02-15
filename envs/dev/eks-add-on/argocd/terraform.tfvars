@@ -20,3 +20,20 @@ set = {
   "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/listen-ports" = "[{\"HTTP\":80}]"
   "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/backend-protocol" = "HTTP"
 }
+
+values = [
+  <<-EOT
+  server:
+    ingress:
+      extraRules:
+        - http:
+            paths:
+              - path: /
+                pathType: Prefix
+                backend:
+                  service:
+                    name: '{{ include "argo-cd.server.fullname" . }}'
+                    port:
+                      name: '{{ .Values.server.service.servicePortHttpName }}'
+  EOT
+]
