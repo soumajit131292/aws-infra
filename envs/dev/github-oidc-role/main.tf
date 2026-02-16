@@ -29,7 +29,9 @@ data "aws_iam_policy_document" "github_policy" {
       "ecr:CompleteLayerUpload",
       "ecr:UploadLayerPart",
       "ecr:InitiateLayerUpload",
-      "ecr:PutImage"
+      "ecr:PutImage",
+      "ecr:GetDownloadUrlForLayer",
+      "ecr:GetAuthorizationToken"
     ]
 
     resources = [
