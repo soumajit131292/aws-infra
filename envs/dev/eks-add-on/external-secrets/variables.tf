@@ -63,3 +63,39 @@ variable "manage_namespace" {
   type        = bool
   default     = false
 }
+
+variable "service_account_name" {
+  description = "Kubernetes service account name used by External Secrets controller"
+  type        = string
+  default     = "external-secrets"
+}
+
+variable "irsa_role_name" {
+  description = "Optional explicit IAM role name for ESO IRSA. If empty, a name will be derived from cluster name."
+  type        = string
+  default     = ""
+}
+
+variable "secrets_manager_secret_arns" {
+  description = "List of Secrets Manager secret ARNs that ESO can read"
+  type        = list(string)
+  default     = ["*"]
+}
+
+variable "kms_key_arns" {
+  description = "Optional KMS key ARNs used to decrypt secrets. Leave empty to skip kms:Decrypt."
+  type        = list(string)
+  default     = []
+}
+
+variable "create_cluster_secret_store" {
+  description = "Create a default ClusterSecretStore for AWS Secrets Manager"
+  type        = bool
+  default     = true
+}
+
+variable "cluster_secret_store_name" {
+  description = "Name of the default ClusterSecretStore"
+  type        = string
+  default     = "aws-secretsmanager"
+}
