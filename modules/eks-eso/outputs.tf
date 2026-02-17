@@ -17,3 +17,8 @@ output "helm_release_version" {
   description = "Deployed External Secrets chart version"
   value       = helm_release.external_secrets.version
 }
+
+output "cluster_secret_store_name" {
+  description = "Default ClusterSecretStore name for AWS Secrets Manager"
+  value       = var.create_cluster_secret_store ? var.cluster_secret_store_name : null
+}

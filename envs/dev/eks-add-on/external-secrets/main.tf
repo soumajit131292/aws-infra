@@ -71,44 +71,18 @@ resource "aws_iam_role_policy" "external_secrets_permissions" {
 module "external_secrets" {
   source = "../../../../modules/eks-eso"
 
-  release_name     = var.release_name
-  namespace        = var.namespace
-  chart_path       = var.chart_path
-  create_namespace = var.create_namespace
-  manage_namespace = var.manage_namespace
-  timeout          = var.timeout
-  atomic           = var.atomic
-  values_files     = var.values_files
-  values           = var.values
-  set              = merge(var.set, local.required_set)
-}
-
-resource "kubernetes_manifest" "cluster_secret_store" {
-  count = var.create_cluster_secret_store ? 1 : 0
-
-  manifest = {
-    apiVersion = "external-secrets.io/v1"
-    kind       = "ClusterSecretStore"
-    metadata = {
-      name = var.cluster_secret_store_name
-    }
-    spec = {
-      provider = {
-        aws = {
-          service = "SecretsManager"
-          region  = var.region
-          auth = {
-            jwt = {
-              serviceAccountRef = {
-                name      = var.service_account_name
-                namespace = var.namespace
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  depends_on = [module.external_secrets]
+  release_name                = var.release_name
+  namespace                   = var.namespace
+  chart_path                  = var.chart_path
+  create_namespace            = var.create_namespace
+  manage_namespace            = var.manage_namespace
+  timeout                     = var.timeout
+  atomic                      = var.atomic
+  values_files                = var.values_files
+  values                      = var.values
+  set                         = merge(var.set, local.required_set)
+  create_cluster_secret_store = var.create_cluster_secret_store
+  cluster_secret_store_name   = var.cluster_secret_store_name
+  aws_region                  = var.region
+  service_account_name        = var.service_account_name
 }

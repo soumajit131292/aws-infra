@@ -39,3 +39,33 @@ resource "helm_release" "external_secrets" {
 
   depends_on = [kubernetes_namespace.external_secrets]
 }
+
+resource "kubernetes_manifest" "cluster_secret_store" {
+  count = var.create_cluster_secret_store ? 1 : 0
+
+  manifest = {
+    apiVersion = "external-secrets.io/v1"
+    kind       = "ClusterSecretStore"
+    metadata = {
+      name = var.cluster_secret_store_name
+    }
+    spec = {
+      provider = {
+        aws = {
+          service = "SecretsManager"
+          region  = var.aws_region
+          auth = {
+            jwt = {
+              serviceAccountRef = {
+                name      = var.service_account_name
+                namespace = var.namespace
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  depends_on = [helm_release.external_secrets]
+}

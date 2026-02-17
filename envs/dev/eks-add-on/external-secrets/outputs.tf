@@ -25,5 +25,5 @@ output "irsa_role_arn" {
 
 output "cluster_secret_store_name" {
   description = "Default ClusterSecretStore name for AWS Secrets Manager"
-  value       = var.create_cluster_secret_store ? var.cluster_secret_store_name : null
+  value       = module.external_secrets.cluster_secret_store_name
 }

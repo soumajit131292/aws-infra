@@ -57,3 +57,27 @@ variable "set" {
   type        = map(string)
   default     = {}
 }
+
+variable "create_cluster_secret_store" {
+  description = "Create a default ClusterSecretStore for AWS Secrets Manager"
+  type        = bool
+  default     = false
+}
+
+variable "cluster_secret_store_name" {
+  description = "Name of the default ClusterSecretStore"
+  type        = string
+  default     = "aws-secretsmanager"
+}
+
+variable "aws_region" {
+  description = "AWS region used by the ClusterSecretStore provider"
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "service_account_name" {
+  description = "Service account name used by ESO for IRSA auth in ClusterSecretStore"
+  type        = string
+  default     = "external-secrets"
+}
