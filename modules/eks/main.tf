@@ -122,10 +122,18 @@ resource "aws_launch_template" "core_ng" {
   name = "${var.cluster_name}-core-ng"
 
   user_data = base64encode(<<-EOT
+    MIME-Version: 1.0
+    Content-Type: multipart/mixed; boundary="==EKS_BOUNDARY=="
+
+    --==EKS_BOUNDARY==
+    Content-Type: text/x-shellscript; charset="us-ascii"
+
     #!/bin/bash
     if [ -x /etc/eks/bootstrap.sh ]; then
       /etc/eks/bootstrap.sh ${aws_eks_cluster.this.name} --use-max-pods false --kubelet-extra-args '--max-pods=${var.core_node_max_pods}'
     fi
+
+    --==EKS_BOUNDARY==--
   EOT
   )
 
