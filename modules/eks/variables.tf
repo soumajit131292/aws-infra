@@ -22,3 +22,21 @@ variable "private_app_sg_id" {
 variable "tags" {
   type = map(string)
 }
+
+variable "core_node_max_pods" {
+  description = "Maximum number of pods scheduled per core node."
+  type        = number
+  default     = 110
+}
+
+variable "enable_prefix_delegation" {
+  description = "Enable prefix delegation for the AWS VPC CNI."
+  type        = bool
+  default     = true
+}
+
+variable "warm_prefix_target" {
+  description = "Number of free prefixes to keep warm per node for the AWS VPC CNI."
+  type        = number
+  default     = 1
+}

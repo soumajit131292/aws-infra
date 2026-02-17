@@ -1,6 +1,6 @@
 provider "helm" {
   kubernetes {
-    host                   = aws_eks_cluster.this.endpoint
+    host = aws_eks_cluster.this.endpoint
     cluster_ca_certificate = base64decode(
       aws_eks_cluster.this.certificate_authority[0].data
     )
@@ -54,7 +54,7 @@ resource "aws_eks_cluster" "this" {
   name     = var.cluster_name
   role_arn = aws_iam_role.eks_cluster.arn
   version  = "1.34"
-  
+
   deletion_protection = true
 
   access_config {
@@ -118,17 +118,34 @@ resource "aws_iam_role_policy_attachment" "node_policies" {
 ###############################
 ## Managed Node Group ##
 ###############################
+resource "aws_launch_template" "core_ng" {
+  name = "${var.cluster_name}-core-ng"
+
+  user_data = base64encode(<<-EOT
+    #!/bin/bash
+    if [ -x /etc/eks/bootstrap.sh ]; then
+      /etc/eks/bootstrap.sh ${aws_eks_cluster.this.name} --use-max-pods false --kubelet-extra-args '--max-pods=${var.core_node_max_pods}'
+    fi
+  EOT
+  )
+
+  tag_specifications {
+    resource_type = "instance"
+    tags          = var.tags
+  }
+}
+
 resource "aws_eks_node_group" "core" {
   cluster_name    = aws_eks_cluster.this.name
   node_group_name = "core-ng"
-  node_role_arn  = aws_iam_role.eks_nodes.arn
-  subnet_ids     = var.private_app_subnet_ids
+  node_role_arn   = aws_iam_role.eks_nodes.arn
+  subnet_ids      = var.private_app_subnet_ids
 
   instance_types = ["m6i.large"]
   capacity_type  = "ON_DEMAND"
 
   scaling_config {
-    min_size     = 1   # one per AZ
+    min_size     = 1 # one per AZ
     desired_size = 1
     max_size     = 1
   }
@@ -141,6 +158,15 @@ resource "aws_eks_node_group" "core" {
     role = "core"
   }
 
+  launch_template {
+    id      = aws_launch_template.core_ng.id
+    version = aws_launch_template.core_ng.latest_version
+  }
+
+  depends_on = [
+    aws_eks_addon.vpc_cni
+  ]
+
   tags = var.tags
 }
 
@@ -148,20 +174,26 @@ resource "aws_eks_node_group" "core" {
 ## EKS managed add-ons ##
 ###############################
 resource "aws_eks_addon" "vpc_cni" {
-  cluster_name  = aws_eks_cluster.this.name
-  addon_name    = "vpc-cni"
+  cluster_name = aws_eks_cluster.this.name
+  addon_name   = "vpc-cni"
+  configuration_values = jsonencode({
+    env = {
+      ENABLE_PREFIX_DELEGATION = tostring(var.enable_prefix_delegation)
+      WARM_PREFIX_TARGET       = tostring(var.warm_prefix_target)
+    }
+  })
   #addon_version = "v1.18.1-eksbuild.1"
 }
 
 resource "aws_eks_addon" "coredns" {
-  cluster_name  = aws_eks_cluster.this.name
-  addon_name    = "coredns"
+  cluster_name = aws_eks_cluster.this.name
+  addon_name   = "coredns"
   #addon_version = "v1.11.1-eksbuild.4"
 }
 
 resource "aws_eks_addon" "kube_proxy" {
-  cluster_name  = aws_eks_cluster.this.name
-  addon_name    = "kube-proxy"
+  cluster_name = aws_eks_cluster.this.name
+  addon_name   = "kube-proxy"
   #addon_version = "v1.29.0-eksbuild.1"
 }
 
@@ -260,7 +292,7 @@ resource "aws_security_group_rule" "eks_api_from_private_app" {
   to_port   = 443
   protocol  = "tcp"
 
-  security_group_id         = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
+  security_group_id        = aws_eks_cluster.this.vpc_config[0].cluster_security_group_id
   source_security_group_id = var.private_app_sg_id
 }
 
