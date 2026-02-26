@@ -1,12 +1,33 @@
 resource "helm_release" "arc" {
-  name       = "arc"
-  namespace  = "actions-runner-system"
-  chart = "${path.module}/helm-chart/actions-runner-controller"
+  name      = "arc"
+  namespace = "actions-runner-system"
+  chart     = "${path.module}/actions-runner-controller"
 
   create_namespace = true
 
   values = [
     yamlencode({
+      image = {
+        repository                    = var.arc_controller_image_repository
+        tag                           = var.arc_controller_image_tag
+        actionsRunnerRepositoryAndTag = "${var.runner_image_repository}:${var.runner_image_tag}"
+      }
+      metrics = {
+        proxy = {
+          image = {
+            repository = var.kube_rbac_proxy_image_repository
+            tag        = var.kube_rbac_proxy_image_tag
+          }
+        }
+      }
+      actionsMetrics = {
+        proxy = {
+          image = {
+            repository = var.kube_rbac_proxy_image_repository
+            tag        = var.kube_rbac_proxy_image_tag
+          }
+        }
+      }
       authSecret = { create = false }
       serviceAccount = {
         annotations = {
@@ -24,6 +45,10 @@ resource "helm_release" "cluster_autoscaler" {
 
   values = [
     yamlencode({
+      image = {
+        repository = var.cluster_autoscaler_image_repository
+        tag        = var.cluster_autoscaler_image_tag
+      }
       autoDiscovery = {
         clusterName = var.cluster_name
       }

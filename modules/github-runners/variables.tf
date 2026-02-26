@@ -16,3 +16,43 @@ variable "github_private_key" {
 variable "runner_max_replicas" {
   default = 3
 }
+
+variable "arc_controller_image_repository" {
+  type    = string
+  default = "summerwind/actions-runner-controller"
+}
+
+variable "arc_controller_image_tag" {
+  type    = string
+  default = "v0.27.6"
+}
+
+variable "runner_image_repository" {
+  type    = string
+  default = "summerwind/actions-runner"
+}
+
+variable "runner_image_tag" {
+  type    = string
+  default = "latest"
+}
+
+variable "kube_rbac_proxy_image_repository" {
+  type    = string
+  default = "quay.io/brancz/kube-rbac-proxy"
+}
+
+variable "kube_rbac_proxy_image_tag" {
+  type    = string
+  default = "v0.13.1"
+}
+
+variable "cluster_autoscaler_image_repository" {
+  type    = string
+  default = "registry.k8s.io/autoscaling/cluster-autoscaler"
+}
+
+variable "cluster_autoscaler_image_tag" {
+  type    = string
+  default = "v1.31.0"
+}
