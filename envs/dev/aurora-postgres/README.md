@@ -17,6 +17,7 @@ Get writer endpoint from Terraform:
 
 ```bash
 cd aws-infra/envs/dev/aurora-postgres
+sudo terraform init
 terraform output -raw cluster_endpoint
 ```
 
@@ -69,6 +70,8 @@ Connect:
 DB_HOST="$(cd envs/dev/aurora-postgres && terraform output -raw cluster_endpoint)"
 DB_NAME="appdb"
 PGPASSWORD="$DB_PASS" psql -h "$DB_HOST" -U "$DB_USER" -d "$DB_NAME" -p 5432
+
+PGPASSWORD="StrongPaAs0w0rd123" psql -h "$DB_HOST" -U "app_user" -d "$DB_NAME" -p 5432
 ```
 
 ## Connect From EKS Pod

@@ -40,3 +40,27 @@ variable "warm_prefix_target" {
   type        = number
   default     = 1
 }
+
+variable "enable_efs_csi_driver" {
+  description = "Enable EFS CSI driver add-on and create an EFS file system for workloads."
+  type        = bool
+  default     = true
+}
+
+variable "efs_encrypted" {
+  description = "Whether to enable encryption at rest for EFS."
+  type        = bool
+  default     = true
+}
+
+variable "efs_performance_mode" {
+  description = "Performance mode for EFS."
+  type        = string
+  default     = "generalPurpose"
+}
+
+variable "efs_throughput_mode" {
+  description = "Throughput mode for EFS."
+  type        = string
+  default     = "bursting"
+}

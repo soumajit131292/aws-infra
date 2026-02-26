@@ -81,3 +81,8 @@ ansible/host_vars/
 *.vault.yml
 ansible/.vault_pass*
 ansible/vault_pass*
+
+##################################
+# Local architecture artifacts
+##################################
+architecture/

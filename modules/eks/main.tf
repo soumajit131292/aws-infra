@@ -236,6 +236,105 @@ resource "aws_iam_role_policy_attachment" "ebs_csi" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
 }
 
+###############################
+## EFS + EFS CSI ##
+###############################
+resource "aws_security_group" "efs" {
+  count = var.enable_efs_csi_driver ? 1 : 0
+
+  name        = "${var.cluster_name}-efs-sg"
+  description = "Security group for EFS mounts from EKS workloads"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description     = "NFS from EKS cluster security group"
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [aws_eks_cluster.this.vpc_config[0].cluster_security_group_id]
+  }
+
+  ingress {
+    description     = "NFS from private app security group"
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [var.private_app_sg_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_name}-efs-sg"
+  })
+}
+
+resource "aws_efs_file_system" "this" {
+  count = var.enable_efs_csi_driver ? 1 : 0
+
+  encrypted        = var.efs_encrypted
+  performance_mode = var.efs_performance_mode
+  throughput_mode  = var.efs_throughput_mode
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_name}-efs"
+  })
+}
+
+resource "aws_efs_mount_target" "this" {
+  for_each = var.enable_efs_csi_driver ? toset(var.private_app_subnet_ids) : toset([])
+
+  file_system_id  = aws_efs_file_system.this[0].id
+  subnet_id       = each.value
+  security_groups = [aws_security_group.efs[0].id]
+}
+
+resource "aws_iam_role" "efs_csi" {
+  count = var.enable_efs_csi_driver ? 1 : 0
+
+  name = "${var.cluster_name}-efs-csi"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Federated = aws_iam_openid_connect_provider.eks.arn
+      }
+      Action = "sts:AssumeRoleWithWebIdentity"
+      Condition = {
+        StringEquals = {
+          "${replace(aws_eks_cluster.this.identity[0].oidc[0].issuer, "https://", "")}:sub" = "system:serviceaccount:kube-system:efs-csi-controller-sa"
+        }
+      }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "efs_csi" {
+  count = var.enable_efs_csi_driver ? 1 : 0
+
+  role       = aws_iam_role.efs_csi[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEFSCSIDriverPolicy"
+}
+
+resource "aws_eks_addon" "efs_csi" {
+  count = var.enable_efs_csi_driver ? 1 : 0
+
+  cluster_name             = aws_eks_cluster.this.name
+  addon_name               = "aws-efs-csi-driver"
+  service_account_role_arn = aws_iam_role.efs_csi[0].arn
+
+  depends_on = [
+    aws_iam_role_policy_attachment.efs_csi
+  ]
+}
+
 
 ###############################
 ## ALB Controller ##

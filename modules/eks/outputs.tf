@@ -27,3 +27,13 @@ output "alb_controller_role_arn" {
   description = "IAM role ARN used by AWS Load Balancer Controller"
   value       = aws_iam_role.alb_controller.arn
 }
+
+output "efs_file_system_id" {
+  description = "EFS file system ID for Kubernetes persistent storage."
+  value       = try(aws_efs_file_system.this[0].id, null)
+}
+
+output "efs_security_group_id" {
+  description = "Security group ID attached to EFS mount targets."
+  value       = try(aws_security_group.efs[0].id, null)
+}

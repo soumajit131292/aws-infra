@@ -36,3 +36,13 @@ output "alb_controller_role_arn" {
   description = "IAM role ARN used by AWS Load Balancer Controller"
   value       = module.eks.alb_controller_role_arn
 }
+
+output "efs_file_system_id" {
+  description = "EFS file system ID created for EKS workloads"
+  value       = module.eks.efs_file_system_id
+}
+
+output "efs_security_group_id" {
+  description = "Security group ID used by EFS mount targets"
+  value       = module.eks.efs_security_group_id
+}
