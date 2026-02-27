@@ -1,9 +1,28 @@
+resource "kubernetes_namespace" "arc" {
+  metadata {
+    name = "actions-runner-system"
+  }
+}
+
+resource "kubernetes_secret" "arc_auth" {
+  metadata {
+    name      = "controller-manager"
+    namespace = kubernetes_namespace.arc.metadata[0].name
+  }
+
+  data = {
+    github_app_id              = var.github_app_id
+    github_app_installation_id = var.github_installation_id
+    github_app_private_key     = var.github_private_key
+  }
+}
+
 resource "helm_release" "arc" {
   name      = "arc"
-  namespace = "actions-runner-system"
+  namespace = kubernetes_namespace.arc.metadata[0].name
   chart     = "${path.module}/actions-runner-controller"
 
-  create_namespace = true
+  create_namespace = false
   skip_crds        = false
   wait             = true
   timeout          = 600
@@ -32,8 +51,8 @@ resource "helm_release" "arc" {
         }
       }
       certManagerEnabled = false
-      nodeSelector = var.controller_node_selector
-      authSecret   = { create = false }
+      nodeSelector       = var.controller_node_selector
+      authSecret         = { create = false }
       serviceAccount = {
         annotations = {
           "eks.amazonaws.com/role-arn" = aws_iam_role.arc_controller.arn
@@ -41,6 +60,8 @@ resource "helm_release" "arc" {
       }
     })
   ]
+
+  depends_on = [kubernetes_secret.arc_auth]
 }
 resource "helm_release" "cluster_autoscaler" {
   name       = "cluster-autoscaler"
@@ -70,19 +91,4 @@ resource "helm_release" "cluster_autoscaler" {
       }
     })
   ]
-}
-
-resource "kubernetes_secret" "arc_auth" {
-  metadata {
-    name      = "controller-manager"
-    namespace = "actions-runner-system"
-  }
-
-  data = {
-    github_app_id              = var.github_app_id
-    github_app_installation_id = var.github_installation_id
-    github_app_private_key     = var.github_private_key
-  }
-
-  depends_on = [helm_release.arc]
 }
