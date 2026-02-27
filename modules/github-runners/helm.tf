@@ -31,6 +31,7 @@ resource "helm_release" "arc" {
           }
         }
       }
+      certManagerEnabled = false
       nodeSelector = var.controller_node_selector
       authSecret   = { create = false }
       serviceAccount = {
