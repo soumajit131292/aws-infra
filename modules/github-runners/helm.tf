@@ -4,6 +4,9 @@ resource "helm_release" "arc" {
   chart     = "${path.module}/actions-runner-controller"
 
   create_namespace = true
+  skip_crds        = false
+  wait             = true
+  timeout          = 600
 
   values = [
     yamlencode({
