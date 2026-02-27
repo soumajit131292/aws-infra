@@ -64,3 +64,45 @@ variable "efs_throughput_mode" {
   type        = string
   default     = "bursting"
 }
+
+variable "enable_spot_runner_node_group" {
+  description = "Enable a dedicated SPOT EKS node group for GitHub runner workloads."
+  type        = bool
+  default     = true
+}
+
+variable "spot_runner_instance_types" {
+  description = "Instance types for the SPOT runner node group (2 vCPU / 8 GiB recommended)."
+  type        = list(string)
+  default     = ["m6a.large"]
+}
+
+variable "spot_runner_min_size" {
+  description = "Minimum size of the SPOT runner node group."
+  type        = number
+  default     = 0
+}
+
+variable "spot_runner_desired_size" {
+  description = "Desired size of the SPOT runner node group."
+  type        = number
+  default     = 1
+}
+
+variable "spot_runner_max_size" {
+  description = "Maximum size of the SPOT runner node group."
+  type        = number
+  default     = 3
+}
+
+variable "spot_runner_taint_key" {
+  description = "Kubernetes taint key for the SPOT runner node group."
+  type        = string
+  default     = "workload"
+}
+
+variable "spot_runner_taint_value" {
+  description = "Kubernetes taint value for the SPOT runner node group."
+  type        = string
+  default     = "github-runners"
+}

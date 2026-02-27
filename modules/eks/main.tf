@@ -178,6 +178,50 @@ resource "aws_eks_node_group" "core" {
   tags = var.tags
 }
 
+resource "aws_eks_node_group" "github_runners_spot" {
+  count = var.enable_spot_runner_node_group ? 1 : 0
+
+  cluster_name    = aws_eks_cluster.this.name
+  node_group_name = "github-runners-spot-ng"
+  node_role_arn   = aws_iam_role.eks_nodes.arn
+  subnet_ids      = var.private_app_subnet_ids
+
+  instance_types = var.spot_runner_instance_types
+  capacity_type  = "SPOT"
+
+  scaling_config {
+    min_size     = var.spot_runner_min_size
+    desired_size = var.spot_runner_desired_size
+    max_size     = var.spot_runner_max_size
+  }
+
+  update_config {
+    max_unavailable = 1
+  }
+
+  labels = {
+    role      = "github-runners-spot"
+    lifecycle = "spot"
+  }
+
+  taint {
+    key    = var.spot_runner_taint_key
+    value  = var.spot_runner_taint_value
+    effect = "NO_SCHEDULE"
+  }
+
+  launch_template {
+    id      = aws_launch_template.core_ng.id
+    version = aws_launch_template.core_ng.latest_version
+  }
+
+  depends_on = [
+    aws_eks_addon.vpc_cni
+  ]
+
+  tags = var.tags
+}
+
 ###############################
 ## EKS managed add-ons ##
 ###############################

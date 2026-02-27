@@ -56,3 +56,31 @@ variable "cluster_autoscaler_image_tag" {
   type    = string
   default = "v1.31.0"
 }
+
+variable "controller_node_selector" {
+  description = "Node selector for ARC controller and cluster-autoscaler pods."
+  type        = map(string)
+  default = {
+    role = "core"
+  }
+}
+
+variable "runner_node_selector" {
+  description = "Node selector for self-hosted runner pods."
+  type        = map(string)
+  default = {
+    role = "github-runners-spot"
+  }
+}
+
+variable "runner_taint_key" {
+  description = "Taint key tolerated by runner pods."
+  type        = string
+  default     = "workload"
+}
+
+variable "runner_taint_value" {
+  description = "Taint value tolerated by runner pods."
+  type        = string
+  default     = "github-runners"
+}

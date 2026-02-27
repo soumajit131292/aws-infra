@@ -13,6 +13,15 @@ resource "kubernetes_manifest" "runner" {
           organization = var.github_org
           ephemeral    = true
           labels       = ["eks", "shared"]
+          nodeSelector = var.runner_node_selector
+          tolerations = [
+            {
+              key      = var.runner_taint_key
+              operator = "Equal"
+              value    = var.runner_taint_value
+              effect   = "NoSchedule"
+            }
+          ]
 
           resources = {
             requests = {

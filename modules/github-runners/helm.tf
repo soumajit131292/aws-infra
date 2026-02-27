@@ -28,7 +28,8 @@ resource "helm_release" "arc" {
           }
         }
       }
-      authSecret = { create = false }
+      nodeSelector = var.controller_node_selector
+      authSecret   = { create = false }
       serviceAccount = {
         annotations = {
           "eks.amazonaws.com/role-arn" = aws_iam_role.arc_controller.arn
@@ -52,7 +53,8 @@ resource "helm_release" "cluster_autoscaler" {
       autoDiscovery = {
         clusterName = var.cluster_name
       }
-      awsRegion = var.aws_region
+      awsRegion    = var.aws_region
+      nodeSelector = var.controller_node_selector
       rbac = {
         serviceAccount = {
           create = true
