@@ -7,7 +7,7 @@ resource "kubernetes_manifest" "runner" {
       namespace = "actions-runner-system"
     }
     spec = {
-      replicas = 1
+      replicas = 2
       template = {
         spec = {
           organization = var.github_org
@@ -29,8 +29,8 @@ resource "kubernetes_manifest" "runner" {
               memory = "1Gi"
             }
             limits = {
-              cpu    = "2"
-              memory = "4Gi"
+              cpu    = "1"
+              memory = "2Gi"
             }
           }
         }
