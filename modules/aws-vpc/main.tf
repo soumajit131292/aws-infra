@@ -316,6 +316,17 @@ resource "aws_network_acl_rule" "app_out_ephemeral" {
   from_port      = 1024
   to_port        = 65535
 }
+
+resource "aws_network_acl_rule" "app_out_ephemeral_udp" {
+  network_acl_id = aws_network_acl.private_app.id
+  rule_number    = 121
+  egress         = true
+  protocol       = "udp"
+  rule_action    = "allow"
+  cidr_block     = "0.0.0.0/0"
+  from_port      = 1024
+  to_port        = 65535
+}
 resource "aws_network_acl_rule" "app_out_ntp" {
   network_acl_id = aws_network_acl.private_app.id
   rule_number    = 130

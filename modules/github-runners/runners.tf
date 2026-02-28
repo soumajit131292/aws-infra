@@ -25,12 +25,12 @@ resource "kubernetes_manifest" "runner" {
 
           resources = {
             requests = {
-              cpu    = "500m"
-              memory = "1Gi"
+              cpu    = "1"
+              memory = "4Gi"
             }
             limits = {
               cpu    = "1"
-              memory = "2Gi"
+              memory = "4Gi"
             }
           }
         }
