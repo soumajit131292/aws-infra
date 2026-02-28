@@ -7,7 +7,7 @@ resource "kubernetes_manifest" "runner" {
       namespace = "actions-runner-system"
     }
     spec = {
-      replicas = 2
+      replicas = 1
       template = {
         spec = {
           organization = var.github_org
