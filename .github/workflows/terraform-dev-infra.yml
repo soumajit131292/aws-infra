@@ -1,0 +1,268 @@
+name: Terraform Dev Infra
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Apply changes (false = plan only)"
+        required: true
+        default: false
+        type: boolean
+  push:
+    branches: [main]
+    paths:
+      - "envs/dev/**"
+      - "modules/**"
+      - ".github/workflows/terraform-dev-infra.yml"
+  pull_request:
+    paths:
+      - "envs/dev/**"
+      - "modules/**"
+      - ".github/workflows/terraform-dev-infra.yml"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+  TF_IN_AUTOMATION: "true"
+  TF_INPUT: "false"
+
+concurrency:
+  group: terraform-dev-infra
+  cancel-in-progress: false
+
+jobs:
+  bootstrap:
+    name: Bootstrap (OIDC provider + ECR lifecycle)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/dev/bootstrap
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform init
+        run: terraform init -reconfigure
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.apply == true)
+        run: terraform apply -auto-approve tfplan
+
+  github_oidc_role:
+    name: GitHub OIDC Role
+    needs: [bootstrap]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/dev/github-oidc-role
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform init
+        run: terraform init -reconfigure
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.apply == true)
+        run: terraform apply -auto-approve tfplan
+
+  vpc:
+    name: VPC
+    needs: [bootstrap]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/dev/vpc
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform init
+        run: terraform init -reconfigure
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.apply == true)
+        run: terraform apply -auto-approve tfplan
+
+  eks:
+    name: EKS (control plane + managed node groups)
+    needs: [vpc]
+    runs-on: [self-hosted, infra, private-vpc]
+    defaults:
+      run:
+        working-directory: envs/dev/eks
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform init
+        run: terraform init -reconfigure
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.apply == true)
+        run: terraform apply -auto-approve tfplan
+
+  aurora:
+    name: Aurora PostgreSQL
+    needs: [vpc, eks]
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: envs/dev/aurora-postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform init
+        run: terraform init -reconfigure
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.apply == true)
+        run: terraform apply -auto-approve tfplan
+
+  alb_controller:
+    name: EKS Add-on - ALB Controller
+    needs: [eks, github_runner]
+    runs-on: [self-hosted, infra, private-vpc]
+    defaults:
+      run:
+        working-directory: envs/dev/eks-add-on/alb-controller
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform init
+        run: terraform init -reconfigure
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.apply == true)
+        run: terraform apply -auto-approve tfplan
+
+  external_secrets:
+    name: EKS Add-on - External Secrets
+    needs: [eks, github_runner]
+    runs-on: [self-hosted, infra, private-vpc]
+    defaults:
+      run:
+        working-directory: envs/dev/eks-add-on/external-secrets
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform init
+        run: terraform init -reconfigure
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.apply == true)
+        run: terraform apply -auto-approve tfplan
+
+  argocd:
+    name: EKS Add-on - Argo CD
+    needs: [eks, github_runner]
+    runs-on: [self-hosted, infra, private-vpc]
+    defaults:
+      run:
+        working-directory: envs/dev/eks-add-on/argocd
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform init
+        run: terraform init -reconfigure
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.apply == true)
+        run: terraform apply -auto-approve tfplan
+
+  github_runner:
+    name: EKS Add-on - GitHub Runner Controller
+    needs: [eks, github_oidc_role]
+    runs-on: [self-hosted, infra, private-vpc]
+    defaults:
+      run:
+        working-directory: envs/dev/github-runner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.8.5
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Terraform init
+        run: terraform init -reconfigure
+      - name: Terraform validate
+        run: terraform validate
+      - name: Terraform plan
+        run: terraform plan -out=tfplan
+      - name: Terraform apply
+        if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || inputs.apply == true)
+        run: terraform apply -auto-approve tfplan

@@ -144,16 +144,21 @@ resource "aws_launch_template" "core_ng" {
 }
 
 resource "aws_eks_node_group" "core" {
+  for_each = {
+    for idx, subnet_id in var.private_app_subnet_ids :
+    format("%02d", idx + 1) => subnet_id
+  }
+
   cluster_name    = aws_eks_cluster.this.name
-  node_group_name = "core-ng"
+  node_group_name = "core-ng-${each.key}"
   node_role_arn   = aws_iam_role.eks_nodes.arn
-  subnet_ids      = var.private_app_subnet_ids
+  subnet_ids      = [each.value]
 
   instance_types = ["m6i.large"]
   capacity_type  = "ON_DEMAND"
 
   scaling_config {
-    min_size     = 1 # one per AZ
+    min_size     = 1
     desired_size = 1
     max_size     = 1
   }

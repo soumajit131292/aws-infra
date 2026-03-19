@@ -35,7 +35,8 @@ data "aws_iam_policy_document" "github_policy" {
     ]
 
     resources = [
-      "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/accesshub/*"
+      "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/accesshub/*",
+      "arn:aws:ecr:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:repository/thirdparty/*"
     ]
   }
 }
@@ -55,4 +56,3 @@ module "github_actions_role" {
     Environment = "prod"
   }
 }
-
