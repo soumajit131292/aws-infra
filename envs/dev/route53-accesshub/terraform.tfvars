@@ -1,4 +1,13 @@
-region           = "us-east-1"
-hosted_zone_name = "example.com."
-record_name      = "accesshub-dev.example.com"
-alb_name         = "accesshub-dev-alb"
+region                 = "us-east-1"
+private_zone_name      = "accesshub.internal."
+rds_writer_record_name = "db-primary.accesshub.internal"
+rds_active_record_name = "db.accesshub.internal"
+create_reader_record   = true
+rds_reader_record_name = "db-reader.accesshub.internal"
+record_ttl             = 60
+
+# DR placeholders (keep disabled until DR exists)
+create_dr_record   = false
+rds_dr_record_name = "db-dr.accesshub.internal"
+rds_dr_endpoint    = ""
+route_active_to_dr = false
