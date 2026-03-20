@@ -130,7 +130,7 @@ resource "aws_launch_template" "core_ng" {
 
     #!/bin/bash
     if [ -x /etc/eks/bootstrap.sh ]; then
-      /etc/eks/bootstrap.sh ${aws_eks_cluster.this.name} --use-max-pods false --kubelet-extra-args '--max-pods=${var.core_node_max_pods}'
+      /etc/eks/bootstrap.sh ${aws_eks_cluster.this.name} --use-max-pods false --kubelet-extra-args '--max-pods=${var.core_node_max_pods} --kube-reserved=cpu=200m,memory=512Mi --system-reserved=cpu=200m,memory=512Mi'
     fi
 
     --==EKS_BOUNDARY==--
@@ -154,7 +154,7 @@ resource "aws_eks_node_group" "core" {
   node_role_arn   = aws_iam_role.eks_nodes.arn
   subnet_ids      = [each.value]
 
-  instance_types = ["m6i.large"]
+  instance_types = ["m6i.xlarge"]
   capacity_type  = "ON_DEMAND"
 
   scaling_config {

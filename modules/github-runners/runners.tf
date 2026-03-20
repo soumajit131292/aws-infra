@@ -7,7 +7,7 @@ resource "kubernetes_manifest" "runner" {
       namespace = "actions-runner-system"
     }
     spec = {
-      replicas = 1
+      replicas = 0
       template = {
         spec = {
           organization = var.github_org
@@ -52,7 +52,7 @@ resource "kubernetes_manifest" "runner_autoscaler" {
       scaleTargetRef = {
         name = "shared-runner"
       }
-      minReplicas = 1
+      minReplicas = 0
       maxReplicas = var.runner_max_replicas
       metrics = [{
         type               = "PercentageRunnersBusy"
