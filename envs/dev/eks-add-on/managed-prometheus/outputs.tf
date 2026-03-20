@@ -5,15 +5,15 @@ output "workspace_arn" {
 
 output "workspace_id" {
   description = "AMP workspace ID."
-  value       = try(aws_prometheus_workspace.this[0].workspace_id, split("/", local.workspace_arn)[1], null)
+  value       = try(aws_prometheus_workspace.this[0].id, null)
 }
 
 output "scraper_id" {
-  description = "Managed scraper ID."
-  value       = aws_prometheus_scraper.eks.scraper_id
+  description = "Managed scraper resource ID."
+  value       = aws_prometheus_scraper.eks.id
 }
 
-output "scraper_status" {
-  description = "Managed scraper status."
-  value       = aws_prometheus_scraper.eks.status
+output "scraper_arn" {
+  description = "Managed scraper ARN."
+  value       = aws_prometheus_scraper.eks.arn
 }
