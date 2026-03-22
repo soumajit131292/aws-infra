@@ -106,3 +106,9 @@ variable "spot_runner_taint_value" {
   type        = string
   default     = "github-runners"
 }
+
+variable "cluster_log_retention_in_days" {
+  description = "CloudWatch log retention (days) for EKS control plane log group."
+  type        = number
+  default     = 7
+}

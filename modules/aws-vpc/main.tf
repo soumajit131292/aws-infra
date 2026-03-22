@@ -470,11 +470,11 @@ resource "aws_security_group" "public_test" {
 ###############################
 resource "aws_cloudwatch_log_group" "vpc_flow" {
   name              = "/aws/vpc/${var.name}-flowlogs"
-  retention_in_days = 90
+  retention_in_days = 7
 }
 resource "aws_cloudwatch_log_group" "firewall" {
   name              = "/aws/network-firewall/${var.name}"
-  retention_in_days = 90
+  retention_in_days = 7
 
   tags = var.tags
 }

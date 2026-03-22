@@ -47,6 +47,12 @@ resource "aws_kms_alias" "eks" {
   target_key_id = aws_kms_key.eks.key_id
 }
 
+resource "aws_cloudwatch_log_group" "eks_cluster" {
+  name              = "/aws/eks/${var.cluster_name}/cluster"
+  retention_in_days = var.cluster_log_retention_in_days
+  tags              = var.tags
+}
+
 ###############################
 ## EKS cluster ##
 ###############################
@@ -80,6 +86,10 @@ resource "aws_eks_cluster" "this" {
     "authenticator",
     "controllerManager",
     "scheduler"
+  ]
+
+  depends_on = [
+    aws_cloudwatch_log_group.eks_cluster
   ]
 
   tags = var.tags
