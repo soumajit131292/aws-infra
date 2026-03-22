@@ -59,3 +59,57 @@ variable "route_active_to_dr" {
   type        = bool
   default     = false
 }
+
+variable "create_alb_record" {
+  description = "Whether to create a CNAME record for ingress ALB DNS."
+  type        = bool
+  default     = false
+}
+
+variable "alb_record_name" {
+  description = "Record name for ingress ALB."
+  type        = string
+  default     = "app.accesshub.internal"
+}
+
+variable "alb_dns_name" {
+  description = "ALB DNS name target."
+  type        = string
+  default     = ""
+}
+
+variable "alb_zone_id" {
+  description = "ALB hosted zone ID (optional). If empty, it is resolved from ALB lookup."
+  type        = string
+  default     = ""
+}
+
+variable "alb_name" {
+  description = "ALB name to auto-discover DNS from AWS when alb_dns_name is empty."
+  type        = string
+  default     = ""
+}
+
+variable "create_public_alb_record" {
+  description = "Whether to create a PUBLIC CNAME for ingress ALB."
+  type        = bool
+  default     = false
+}
+
+variable "public_hosted_zone_name" {
+  description = "Public hosted zone name (must end with a dot), e.g. example.com."
+  type        = string
+  default     = ""
+}
+
+variable "public_hosted_zone_id" {
+  description = "Existing public hosted zone ID. If empty, it will be resolved by name."
+  type        = string
+  default     = ""
+}
+
+variable "public_alb_record_name" {
+  description = "Public DNS name to create for ALB, e.g. app.example.com."
+  type        = string
+  default     = ""
+}

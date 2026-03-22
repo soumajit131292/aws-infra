@@ -32,3 +32,8 @@ output "rds_reader_record_fqdn" {
   description = "FQDN created for Aurora reader endpoint, if enabled."
   value       = try(aws_route53_record.rds_reader[0].fqdn, null)
 }
+
+output "alb_record_fqdn" {
+  description = "FQDN created for ingress ALB, if enabled."
+  value       = try(aws_route53_record.ingress_alb[0].fqdn, null)
+}

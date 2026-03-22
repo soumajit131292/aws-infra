@@ -69,3 +69,21 @@ variable "route_active_to_dr" {
   type        = bool
   default     = false
 }
+
+variable "create_alb_record" {
+  description = "Whether to create a CNAME record for ingress ALB DNS."
+  type        = bool
+  default     = false
+}
+
+variable "alb_record_name" {
+  description = "Record name for ingress ALB, e.g. app.accesshub.internal."
+  type        = string
+  default     = "app.accesshub.internal"
+}
+
+variable "alb_dns_name" {
+  description = "ALB DNS name target (without scheme), e.g. my-alb-123.us-east-1.elb.amazonaws.com."
+  type        = string
+  default     = ""
+}

@@ -52,3 +52,13 @@ resource "aws_route53_record" "rds_dr" {
   ttl     = var.record_ttl
   records = [var.rds_dr_endpoint]
 }
+
+resource "aws_route53_record" "ingress_alb" {
+  count = var.create_alb_record && length(trimspace(var.alb_dns_name)) > 0 ? 1 : 0
+
+  zone_id = aws_route53_zone.private.zone_id
+  name    = var.alb_record_name
+  type    = "CNAME"
+  ttl     = var.record_ttl
+  records = [var.alb_dns_name]
+}

@@ -42,3 +42,13 @@ output "rds_dr_record_fqdn" {
   description = "DR record FQDN, if DR endpoint is configured."
   value       = module.route53_rds_private.rds_dr_record_fqdn
 }
+
+output "alb_record_fqdn" {
+  description = "FQDN created for ingress ALB, if enabled."
+  value       = module.route53_rds_private.alb_record_fqdn
+}
+
+output "public_alb_record_fqdn" {
+  description = "PUBLIC FQDN created for ingress ALB, if enabled."
+  value       = try(aws_route53_record.public_ingress_alb[0].fqdn, null)
+}
