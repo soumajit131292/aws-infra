@@ -114,12 +114,14 @@ resource "aws_iam_role" "eks_nodes" {
 }
 
 resource "aws_iam_role_policy_attachment" "node_policies" {
-  for_each = toset([
+  for_each = toset(concat([
     "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
     "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
     "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
     "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-  ])
+    ], var.enable_cloudwatch_observability ? [
+    "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
+  ] : []))
 
   role       = aws_iam_role.eks_nodes.name
   policy_arn = each.value
@@ -276,6 +278,13 @@ resource "aws_eks_addon" "kube_proxy" {
   cluster_name = aws_eks_cluster.this.name
   addon_name   = "kube-proxy"
   #addon_version = "v1.29.0-eksbuild.1"
+}
+
+resource "aws_eks_addon" "cloudwatch_observability" {
+  count = var.enable_cloudwatch_observability ? 1 : 0
+
+  cluster_name = aws_eks_cluster.this.name
+  addon_name   = "amazon-cloudwatch-observability"
 }
 
 resource "aws_iam_role" "ebs_csi" {

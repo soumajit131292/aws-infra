@@ -112,3 +112,9 @@ variable "cluster_log_retention_in_days" {
   type        = number
   default     = 7
 }
+
+variable "enable_cloudwatch_observability" {
+  description = "Enable Amazon CloudWatch Observability EKS managed add-on."
+  type        = bool
+  default     = false
+}
