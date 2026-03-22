@@ -30,7 +30,8 @@ locals {
 resource "aws_s3_bucket" "alb_access_logs" {
   count = var.create_alb_access_logs_bucket ? 1 : 0
 
-  bucket = local.alb_access_logs_bucket_name_effective
+  bucket        = local.alb_access_logs_bucket_name_effective
+  force_destroy = var.alb_access_logs_bucket_force_destroy
 
   tags = merge(var.tags, {
     Name      = local.alb_access_logs_bucket_name_effective

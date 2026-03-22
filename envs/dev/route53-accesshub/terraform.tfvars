@@ -17,7 +17,7 @@ create_alb_record = false
 alb_record_name   = "accesshub.accesshub.internal"
 alb_dns_name      = ""
 alb_zone_id       = ""
-alb_name          = "accesshub-dev-alb"
+alb_name          = "accesshub-ai-dev-alb"
 
 # PUBLIC ALB DNS (requires an existing public hosted zone / registered domain)
 create_public_alb_record = true

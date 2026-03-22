@@ -9,6 +9,12 @@ variable "create_alb_access_logs_bucket" {
   default     = true
 }
 
+variable "alb_access_logs_bucket_force_destroy" {
+  description = "If true, Terraform deletes all objects/versions in the ALB access logs bucket during destroy"
+  type        = bool
+  default     = false
+}
+
 variable "alb_access_logs_bucket_name" {
   description = "Existing S3 bucket name for ALB logs. Leave empty to auto-generate from prefix/account/region"
   type        = string
