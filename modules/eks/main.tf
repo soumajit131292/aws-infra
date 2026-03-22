@@ -167,6 +167,10 @@ resource "aws_eks_node_group" "core" {
     max_unavailable = 1
   }
 
+  node_repair_config {
+    enabled = true
+  }
+
   labels = {
     role = "core"
   }
@@ -202,6 +206,10 @@ resource "aws_eks_node_group" "github_runners_spot" {
 
   update_config {
     max_unavailable = 1
+  }
+
+  node_repair_config {
+    enabled = true
   }
 
   labels = {
