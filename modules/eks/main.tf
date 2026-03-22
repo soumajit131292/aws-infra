@@ -194,7 +194,10 @@ resource "aws_eks_node_group" "core" {
     aws_eks_addon.vpc_cni
   ]
 
-  tags = var.tags
+  tags = merge(var.tags, {
+    "k8s.io/cluster-autoscaler/enabled"             = "true"
+    "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+  })
 }
 
 resource "aws_eks_node_group" "github_runners_spot" {
@@ -242,7 +245,10 @@ resource "aws_eks_node_group" "github_runners_spot" {
     aws_eks_addon.vpc_cni
   ]
 
-  tags = var.tags
+  tags = merge(var.tags, {
+    "k8s.io/cluster-autoscaler/enabled"             = "true"
+    "k8s.io/cluster-autoscaler/${var.cluster_name}" = "owned"
+  })
 }
 
 ###############################

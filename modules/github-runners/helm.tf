@@ -63,6 +63,9 @@ resource "helm_release" "cluster_autoscaler" {
       autoDiscovery = {
         clusterName = var.cluster_name
       }
+      extraArgs = {
+        "balance-similar-node-groups" = "true"
+      }
       awsRegion    = var.aws_region
       nodeSelector = var.controller_node_selector
       rbac = {
