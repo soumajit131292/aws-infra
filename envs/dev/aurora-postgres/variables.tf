@@ -136,6 +136,12 @@ variable "enabled_cloudwatch_logs_exports" {
   default     = ["postgresql"]
 }
 
+variable "cloudwatch_log_retention_in_days" {
+  description = "CloudWatch log retention (days) for Aurora PostgreSQL exported logs."
+  type        = number
+  default     = 7
+}
+
 variable "performance_insights_enabled" {
   description = "Enable Performance Insights on instances"
   type        = bool

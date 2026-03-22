@@ -5,6 +5,13 @@ locals {
   resolved_master_password = var.db_credentials_secret_name != "" ? try(local.db_credentials.password, null) : var.master_password
 }
 
+resource "aws_cloudwatch_log_group" "aurora_postgresql" {
+  name              = "/aws/rds/cluster/${var.cluster_identifier}/postgresql"
+  retention_in_days = var.cloudwatch_log_retention_in_days
+
+  tags = var.tags
+}
+
 module "aurora_postgres" {
   source = "../../../modules/aurora-postgres"
 
@@ -37,4 +44,8 @@ module "aurora_postgres" {
   performance_insights_enabled    = var.performance_insights_enabled
   auto_minor_version_upgrade      = var.auto_minor_version_upgrade
   tags                            = var.tags
+
+  depends_on = [
+    aws_cloudwatch_log_group.aurora_postgresql
+  ]
 }
