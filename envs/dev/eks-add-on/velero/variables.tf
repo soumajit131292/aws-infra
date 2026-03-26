@@ -44,11 +44,6 @@ variable "backup_bucket_name" {
   description = "Existing S3 bucket name for Velero backups. If empty and create_backup_bucket=true, a name is generated."
   type        = string
   default     = ""
-
-  validation {
-    condition     = var.create_backup_bucket || length(trimspace(var.backup_bucket_name)) > 0
-    error_message = "backup_bucket_name must be set when create_backup_bucket is false."
-  }
 }
 
 variable "backup_bucket_name_prefix" {
