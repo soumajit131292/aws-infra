@@ -52,6 +52,18 @@ variable "backup_bucket_name_prefix" {
   default     = "dev-eks-velero-backups"
 }
 
+variable "create_velero_kms_key" {
+  description = "Create a customer-managed KMS key for Velero backup bucket encryption."
+  type        = bool
+  default     = true
+}
+
+variable "velero_kms_key_alias" {
+  description = "Alias for Velero KMS key (without alias/ prefix)."
+  type        = string
+  default     = "dev-velero-backups"
+}
+
 variable "backup_bucket_retention_days" {
   description = "S3 lifecycle expiration in days for Velero backup objects."
   type        = number

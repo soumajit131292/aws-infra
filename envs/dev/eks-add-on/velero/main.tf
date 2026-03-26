@@ -4,6 +4,7 @@ locals {
   oidc_issuer_url              = data.terraform_remote_state.eks.outputs.oidc_issuer_url
   oidc_issuer_hostpath         = replace(local.oidc_issuer_url, "https://", "")
   backup_bucket_name_effective = trimspace(var.backup_bucket_name) != "" ? trimspace(var.backup_bucket_name) : format("%s-%s-%s", var.backup_bucket_name_prefix, data.aws_caller_identity.current.account_id, var.region)
+  velero_kms_key_arn_effective = var.create_velero_kms_key ? aws_kms_key.velero[0].arn : null
 }
 
 resource "aws_s3_bucket" "velero" {
@@ -27,6 +28,25 @@ resource "aws_s3_bucket_public_access_block" "velero" {
   restrict_public_buckets = true
 }
 
+resource "aws_kms_key" "velero" {
+  count = var.create_velero_kms_key ? 1 : 0
+
+  description             = "KMS key for Velero backups in ${var.region}"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = merge(var.tags, {
+    Name = "velero-backups-kms"
+  })
+}
+
+resource "aws_kms_alias" "velero" {
+  count = var.create_velero_kms_key ? 1 : 0
+
+  name          = "alias/${var.velero_kms_key_alias}"
+  target_key_id = aws_kms_key.velero[0].key_id
+}
+
 resource "aws_s3_bucket_server_side_encryption_configuration" "velero" {
   count = var.create_backup_bucket ? 1 : 0
 
@@ -34,7 +54,8 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "velero" {
 
   rule {
     apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
+      sse_algorithm     = "aws:kms"
+      kms_master_key_id = local.velero_kms_key_arn_effective
     }
     bucket_key_enabled = true
   }
@@ -120,6 +141,22 @@ data "aws_iam_policy_document" "velero_permissions" {
       "arn:aws:s3:::${local.backup_bucket_name_effective}",
       "arn:aws:s3:::${local.backup_bucket_name_effective}/*"
     ]
+  }
+
+  dynamic "statement" {
+    for_each = var.create_velero_kms_key ? [1] : []
+
+    content {
+      sid    = "VeleroKMSAccess"
+      effect = "Allow"
+      actions = [
+        "kms:Decrypt",
+        "kms:Encrypt",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey"
+      ]
+      resources = [aws_kms_key.velero[0].arn]
+    }
   }
 
   statement {

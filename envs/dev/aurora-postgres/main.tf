@@ -3,6 +3,26 @@ locals {
 
   resolved_master_username = var.db_credentials_secret_name != "" ? try(local.db_credentials.username, null) : var.master_username
   resolved_master_password = var.db_credentials_secret_name != "" ? try(local.db_credentials.password, null) : var.master_password
+  kms_key_id_effective     = var.create_rds_kms_key ? aws_kms_key.rds[0].arn : var.kms_key_id
+}
+
+resource "aws_kms_key" "rds" {
+  count = var.create_rds_kms_key ? 1 : 0
+
+  description             = "KMS key for Aurora ${var.cluster_identifier}"
+  deletion_window_in_days = 7
+  enable_key_rotation     = true
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_identifier}-kms"
+  })
+}
+
+resource "aws_kms_alias" "rds" {
+  count = var.create_rds_kms_key ? 1 : 0
+
+  name          = "alias/${var.rds_kms_key_alias}"
+  target_key_id = aws_kms_key.rds[0].key_id
 }
 
 resource "aws_cloudwatch_log_group" "aurora_postgresql" {
@@ -38,7 +58,7 @@ module "aurora_postgres" {
   final_snapshot_identifier         = var.final_snapshot_identifier
   apply_immediately                 = var.apply_immediately
   storage_encrypted                 = var.storage_encrypted
-  kms_key_id                        = var.kms_key_id
+  kms_key_id                        = local.kms_key_id_effective
   copy_tags_to_snapshot             = var.copy_tags_to_snapshot
   enabled_cloudwatch_logs_exports   = var.enabled_cloudwatch_logs_exports
   performance_insights_enabled      = var.performance_insights_enabled

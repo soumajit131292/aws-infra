@@ -11,6 +11,8 @@ velero_plugin_image         = "velero/velero-plugin-for-aws:v1.10.0"
 
 create_backup_bucket                    = true
 backup_bucket_name                      = ""
+create_velero_kms_key                   = true
+velero_kms_key_alias                    = "dev-velero-backups"
 backup_bucket_retention_days            = 7
 backup_bucket_noncurrent_retention_days = 7
 enable_default_backup_schedule          = true

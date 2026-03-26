@@ -124,6 +124,18 @@ variable "kms_key_id" {
   default     = null
 }
 
+variable "create_rds_kms_key" {
+  description = "Create a customer-managed KMS key for Aurora encryption."
+  type        = bool
+  default     = true
+}
+
+variable "rds_kms_key_alias" {
+  description = "Alias for the Aurora KMS key (without alias/ prefix)."
+  type        = string
+  default     = "dev-aurora-postgres"
+}
+
 variable "copy_tags_to_snapshot" {
   description = "Copy tags to snapshots"
   type        = bool

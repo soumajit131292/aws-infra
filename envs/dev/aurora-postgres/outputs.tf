@@ -37,3 +37,8 @@ output "rds_proxy_endpoint" {
   description = "RDS Proxy endpoint"
   value       = module.aurora_postgres.rds_proxy_endpoint
 }
+
+output "rds_kms_key_arn" {
+  description = "KMS key ARN used for Aurora encryption (null when external key is used)."
+  value       = var.create_rds_kms_key ? aws_kms_key.rds[0].arn : null
+}

@@ -12,3 +12,8 @@ output "velero_release_status" {
   description = "Velero Helm release status"
   value       = module.velero_helm.release_status
 }
+
+output "velero_kms_key_arn" {
+  description = "KMS key ARN used for Velero backup bucket encryption (null when not created)."
+  value       = var.create_velero_kms_key ? aws_kms_key.velero[0].arn : null
+}
