@@ -27,6 +27,19 @@ resource "aws_s3_bucket_public_access_block" "velero" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_server_side_encryption_configuration" "velero" {
+  count = var.create_backup_bucket ? 1 : 0
+
+  bucket = aws_s3_bucket.velero[0].id
+
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+    bucket_key_enabled = true
+  }
+}
+
 resource "aws_s3_bucket_versioning" "velero" {
   count = var.create_backup_bucket ? 1 : 0
 
@@ -34,6 +47,29 @@ resource "aws_s3_bucket_versioning" "velero" {
 
   versioning_configuration {
     status = "Enabled"
+  }
+}
+
+resource "aws_s3_bucket_lifecycle_configuration" "velero" {
+  count = var.create_backup_bucket ? 1 : 0
+
+  bucket = aws_s3_bucket.velero[0].id
+
+  rule {
+    id     = "velero-retention"
+    status = "Enabled"
+
+    expiration {
+      days = var.backup_bucket_retention_days
+    }
+
+    noncurrent_version_expiration {
+      noncurrent_days = var.backup_bucket_noncurrent_retention_days
+    }
+
+    abort_incomplete_multipart_upload {
+      days_after_initiation = 7
+    }
   }
 }
 
@@ -87,17 +123,75 @@ data "aws_iam_policy_document" "velero_permissions" {
   }
 
   statement {
-    sid    = "VeleroEBSAccess"
+    sid    = "VeleroEBSDescribe"
     effect = "Allow"
     actions = [
       "ec2:DescribeVolumes",
-      "ec2:DescribeSnapshots",
-      "ec2:CreateTags",
-      "ec2:CreateVolume",
-      "ec2:CreateSnapshot",
-      "ec2:DeleteSnapshot"
+      "ec2:DescribeSnapshots"
     ]
     resources = ["*"]
+  }
+
+  statement {
+    sid     = "VeleroCreateSnapshotScopedToClusterVolumes"
+    effect  = "Allow"
+    actions = ["ec2:CreateSnapshot"]
+    resources = [
+      "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:volume/*"
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:ResourceTag/kubernetes.io/cluster/${local.cluster_name}"
+      values   = ["owned", "shared"]
+    }
+  }
+
+  statement {
+    sid     = "VeleroCreateVolumeScopedToRegion"
+    effect  = "Allow"
+    actions = ["ec2:CreateVolume"]
+    resources = [
+      "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:snapshot/*",
+      "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:volume/*"
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "aws:RequestedRegion"
+      values   = [var.region]
+    }
+  }
+
+  statement {
+    sid     = "VeleroCreateTagsOnlyDuringCreate"
+    effect  = "Allow"
+    actions = ["ec2:CreateTags"]
+    resources = [
+      "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:snapshot/*",
+      "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:volume/*"
+    ]
+
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:CreateAction"
+      values   = ["CreateSnapshot", "CreateVolume"]
+    }
+  }
+
+  statement {
+    sid     = "VeleroDeleteOnlyVeleroSnapshots"
+    effect  = "Allow"
+    actions = ["ec2:DeleteSnapshot"]
+    resources = [
+      "arn:aws:ec2:${var.region}:${data.aws_caller_identity.current.account_id}:snapshot/*"
+    ]
+
+    condition {
+      test     = "StringLike"
+      variable = "ec2:ResourceTag/velero.io/backup"
+      values   = ["*"]
+    }
   }
 }
 
@@ -143,11 +237,25 @@ module "velero_helm" {
   velero_image_repository = var.velero_image_repository
   velero_image_tag        = var.velero_image_tag
   aws_plugin_image        = var.velero_plugin_image
+  extra_values = [
+    yamlencode({
+      schedules = var.enable_default_backup_schedule ? {
+        daily = {
+          schedule = var.backup_schedule_cron
+          template = {
+            ttl = format("%dh", var.backup_schedule_ttl_hours)
+          }
+        }
+      } : {}
+    })
+  ]
 
   depends_on = [
     aws_iam_role_policy.velero_permissions,
     kubernetes_service_account.velero,
-    aws_s3_bucket_versioning.velero
+    aws_s3_bucket_versioning.velero,
+    aws_s3_bucket_server_side_encryption_configuration.velero,
+    aws_s3_bucket_lifecycle_configuration.velero
   ]
 }
 

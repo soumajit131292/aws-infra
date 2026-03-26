@@ -52,6 +52,18 @@ variable "backup_bucket_name_prefix" {
   default     = "dev-eks-velero-backups"
 }
 
+variable "backup_bucket_retention_days" {
+  description = "S3 lifecycle expiration in days for Velero backup objects."
+  type        = number
+  default     = 30
+}
+
+variable "backup_bucket_noncurrent_retention_days" {
+  description = "S3 lifecycle expiration in days for noncurrent object versions."
+  type        = number
+  default     = 30
+}
+
 variable "tags" {
   description = "Tags applied to Velero resources"
   type        = map(string)
@@ -77,4 +89,22 @@ variable "velero_plugin_image" {
   description = "Velero AWS plugin image."
   type        = string
   default     = "velero/velero-plugin-for-aws:v1.10.0"
+}
+
+variable "enable_default_backup_schedule" {
+  description = "Create a default Velero backup schedule."
+  type        = bool
+  default     = true
+}
+
+variable "backup_schedule_cron" {
+  description = "Cron expression for default Velero schedule."
+  type        = string
+  default     = "0 2 * * *"
+}
+
+variable "backup_schedule_ttl_hours" {
+  description = "TTL in hours for backups created by the default schedule."
+  type        = number
+  default     = 720
 }
