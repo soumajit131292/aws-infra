@@ -150,3 +150,75 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "enable_rds_proxy" {
+  description = "Enable RDS Proxy in front of Aurora cluster."
+  type        = bool
+  default     = false
+}
+
+variable "rds_proxy_name" {
+  description = "Optional RDS Proxy name. If empty, <cluster_identifier>-proxy is used."
+  type        = string
+  default     = ""
+}
+
+variable "rds_proxy_secret_arn" {
+  description = "Secrets Manager secret ARN used by RDS Proxy for DB authentication."
+  type        = string
+  default     = ""
+}
+
+variable "rds_proxy_subnet_ids" {
+  description = "Subnet IDs for RDS Proxy endpoints. If empty, db_subnet_ids are used."
+  type        = list(string)
+  default     = []
+}
+
+variable "rds_proxy_iam_auth" {
+  description = "RDS Proxy IAM auth mode: REQUIRED or DISABLED."
+  type        = string
+  default     = "DISABLED"
+}
+
+variable "rds_proxy_require_tls" {
+  description = "Require TLS for connections to RDS Proxy."
+  type        = bool
+  default     = true
+}
+
+variable "rds_proxy_idle_client_timeout" {
+  description = "Idle client timeout (seconds) for RDS Proxy."
+  type        = number
+  default     = 1800
+}
+
+variable "rds_proxy_debug_logging" {
+  description = "Enable RDS Proxy debug logging."
+  type        = bool
+  default     = false
+}
+
+variable "rds_proxy_max_connections_percent" {
+  description = "Maximum DB connections percent for RDS Proxy target group."
+  type        = number
+  default     = 100
+}
+
+variable "rds_proxy_max_idle_connections_percent" {
+  description = "Maximum idle DB connections percent for RDS Proxy target group."
+  type        = number
+  default     = 50
+}
+
+variable "rds_proxy_connection_borrow_timeout" {
+  description = "Connection borrow timeout (seconds) for RDS Proxy target group."
+  type        = number
+  default     = 120
+}
+
+variable "enforce_rds_proxy_only" {
+  description = "When true and RDS Proxy is enabled, allow DB ingress only from proxy security group."
+  type        = bool
+  default     = false
+}

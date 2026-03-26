@@ -37,3 +37,23 @@ output "instance_ids" {
   description = "Aurora instance identifiers"
   value       = aws_rds_cluster_instance.this[*].id
 }
+
+output "rds_proxy_name" {
+  description = "RDS Proxy name, if enabled."
+  value       = try(aws_db_proxy.this[0].name, null)
+}
+
+output "rds_proxy_arn" {
+  description = "RDS Proxy ARN, if enabled."
+  value       = try(aws_db_proxy.this[0].arn, null)
+}
+
+output "rds_proxy_endpoint" {
+  description = "RDS Proxy endpoint, if enabled."
+  value       = try(aws_db_proxy.this[0].endpoint, null)
+}
+
+output "rds_proxy_security_group_id" {
+  description = "RDS Proxy security group ID, if enabled."
+  value       = try(aws_security_group.rds_proxy[0].id, null)
+}

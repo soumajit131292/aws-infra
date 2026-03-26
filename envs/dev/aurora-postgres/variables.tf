@@ -154,6 +154,48 @@ variable "auto_minor_version_upgrade" {
   default     = true
 }
 
+variable "enable_rds_proxy" {
+  description = "Enable RDS Proxy in front of Aurora cluster."
+  type        = bool
+  default     = true
+}
+
+variable "rds_proxy_name" {
+  description = "Optional RDS Proxy name."
+  type        = string
+  default     = ""
+}
+
+variable "rds_proxy_secret_arn" {
+  description = "Optional explicit Secrets Manager ARN for RDS Proxy auth."
+  type        = string
+  default     = ""
+}
+
+variable "rds_proxy_subnet_ids" {
+  description = "Optional explicit subnet IDs for RDS Proxy."
+  type        = list(string)
+  default     = []
+}
+
+variable "rds_proxy_iam_auth" {
+  description = "RDS Proxy IAM auth mode: REQUIRED or DISABLED."
+  type        = string
+  default     = "DISABLED"
+}
+
+variable "enforce_rds_proxy_only" {
+  description = "When true, DB SG allows ingress only from RDS Proxy SG."
+  type        = bool
+  default     = true
+}
+
+variable "rds_proxy_max_connections_percent" {
+  description = "Maximum DB connections percent for RDS Proxy target group."
+  type        = number
+  default     = 80
+}
+
 variable "tags" {
   description = "Common tags"
   type        = map(string)

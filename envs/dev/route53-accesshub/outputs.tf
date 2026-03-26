@@ -24,8 +24,8 @@ output "rds_active_target_record_name" {
 }
 
 output "rds_writer_target" {
-  description = "Primary Aurora writer endpoint targeted by CNAME."
-  value       = data.terraform_remote_state.aurora.outputs.cluster_endpoint
+  description = "DB writer/proxy endpoint targeted by CNAME."
+  value       = local.resolved_rds_writer_endpoint
 }
 
 output "rds_reader_record_fqdn" {
@@ -46,9 +46,4 @@ output "rds_dr_record_fqdn" {
 output "alb_record_fqdn" {
   description = "FQDN created for ingress ALB, if enabled."
   value       = module.route53_rds_private.alb_record_fqdn
-}
-
-output "public_alb_record_fqdn" {
-  description = "PUBLIC FQDN created for ingress ALB, if enabled."
-  value       = try(aws_route53_record.public_ingress_alb[0].fqdn, null)
 }

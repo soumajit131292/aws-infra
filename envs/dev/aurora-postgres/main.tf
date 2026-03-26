@@ -28,22 +28,29 @@ module "aurora_postgres" {
     data.terraform_remote_state.vpc.outputs.private_app_sg_id,
     data.terraform_remote_state.eks.outputs.cluster_security_group_id,
   ]
-  allowed_cidr_blocks             = var.allowed_cidr_blocks
-  port                            = var.port
-  backup_retention_period         = var.backup_retention_period
-  preferred_backup_window         = var.preferred_backup_window
-  preferred_maintenance_window    = var.preferred_maintenance_window
-  deletion_protection             = var.deletion_protection
-  skip_final_snapshot             = var.skip_final_snapshot
-  final_snapshot_identifier       = var.final_snapshot_identifier
-  apply_immediately               = var.apply_immediately
-  storage_encrypted               = var.storage_encrypted
-  kms_key_id                      = var.kms_key_id
-  copy_tags_to_snapshot           = var.copy_tags_to_snapshot
-  enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
-  performance_insights_enabled    = var.performance_insights_enabled
-  auto_minor_version_upgrade      = var.auto_minor_version_upgrade
-  tags                            = var.tags
+  allowed_cidr_blocks               = var.allowed_cidr_blocks
+  port                              = var.port
+  backup_retention_period           = var.backup_retention_period
+  preferred_backup_window           = var.preferred_backup_window
+  preferred_maintenance_window      = var.preferred_maintenance_window
+  deletion_protection               = var.deletion_protection
+  skip_final_snapshot               = var.skip_final_snapshot
+  final_snapshot_identifier         = var.final_snapshot_identifier
+  apply_immediately                 = var.apply_immediately
+  storage_encrypted                 = var.storage_encrypted
+  kms_key_id                        = var.kms_key_id
+  copy_tags_to_snapshot             = var.copy_tags_to_snapshot
+  enabled_cloudwatch_logs_exports   = var.enabled_cloudwatch_logs_exports
+  performance_insights_enabled      = var.performance_insights_enabled
+  auto_minor_version_upgrade        = var.auto_minor_version_upgrade
+  enable_rds_proxy                  = var.enable_rds_proxy
+  rds_proxy_name                    = var.rds_proxy_name
+  rds_proxy_secret_arn              = trimspace(var.rds_proxy_secret_arn) != "" ? trimspace(var.rds_proxy_secret_arn) : (var.db_credentials_secret_name != "" ? data.aws_secretsmanager_secret.db_credentials[0].arn : "")
+  rds_proxy_subnet_ids              = length(var.rds_proxy_subnet_ids) > 0 ? var.rds_proxy_subnet_ids : data.terraform_remote_state.vpc.outputs.private_app_subnet_ids
+  rds_proxy_iam_auth                = var.rds_proxy_iam_auth
+  enforce_rds_proxy_only            = var.enforce_rds_proxy_only
+  rds_proxy_max_connections_percent = var.rds_proxy_max_connections_percent
+  tags                              = var.tags
 
   depends_on = [
     aws_cloudwatch_log_group.aurora_postgresql

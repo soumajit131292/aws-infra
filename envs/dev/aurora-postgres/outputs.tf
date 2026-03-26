@@ -27,3 +27,13 @@ output "db_subnet_group_name" {
   description = "DB subnet group name"
   value       = module.aurora_postgres.db_subnet_group_name
 }
+
+output "rds_proxy_name" {
+  description = "RDS Proxy name"
+  value       = module.aurora_postgres.rds_proxy_name
+}
+
+output "rds_proxy_endpoint" {
+  description = "RDS Proxy endpoint"
+  value       = module.aurora_postgres.rds_proxy_endpoint
+}

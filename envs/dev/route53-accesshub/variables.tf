@@ -60,6 +60,12 @@ variable "route_active_to_dr" {
   default     = false
 }
 
+variable "use_rds_proxy_endpoint" {
+  description = "If true, Route53 DB writer/active record points to Aurora RDS Proxy endpoint when available."
+  type        = bool
+  default     = true
+}
+
 variable "create_alb_record" {
   description = "Whether to create a CNAME record for ingress ALB DNS."
   type        = bool
@@ -86,30 +92,6 @@ variable "alb_zone_id" {
 
 variable "alb_name" {
   description = "ALB name to auto-discover DNS from AWS when alb_dns_name is empty."
-  type        = string
-  default     = ""
-}
-
-variable "create_public_alb_record" {
-  description = "Whether to create a PUBLIC CNAME for ingress ALB."
-  type        = bool
-  default     = false
-}
-
-variable "public_hosted_zone_name" {
-  description = "Public hosted zone name (must end with a dot), e.g. example.com."
-  type        = string
-  default     = ""
-}
-
-variable "public_hosted_zone_id" {
-  description = "Existing public hosted zone ID. If empty, it will be resolved by name."
-  type        = string
-  default     = ""
-}
-
-variable "public_alb_record_name" {
-  description = "Public DNS name to create for ALB, e.g. app.example.com."
   type        = string
   default     = ""
 }
