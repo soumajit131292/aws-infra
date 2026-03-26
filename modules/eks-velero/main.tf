@@ -65,6 +65,10 @@ resource "helm_release" "velero" {
           }
         ]
       }
+
+      # Avoid pre-install upgrade job failures in restricted/private clusters.
+      # CRDs are still installed from chart crds/ directory.
+      upgradeCRDs = false
     })
   ], var.extra_values)
 }
