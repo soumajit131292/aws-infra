@@ -65,6 +65,24 @@ variable "efs_throughput_mode" {
   default     = "bursting"
 }
 
+variable "enable_efs_backup" {
+  description = "Enable AWS Backup for EFS file system created by this module."
+  type        = bool
+  default     = false
+}
+
+variable "efs_backup_schedule" {
+  description = "Cron expression for AWS Backup schedule for EFS."
+  type        = string
+  default     = "cron(0 5 * * ? *)"
+}
+
+variable "efs_backup_retention_days" {
+  description = "Retention in days for EFS backups in AWS Backup."
+  type        = number
+  default     = 30
+}
+
 variable "enable_spot_runner_node_group" {
   description = "Enable a dedicated SPOT EKS node group for GitHub runner workloads."
   type        = bool

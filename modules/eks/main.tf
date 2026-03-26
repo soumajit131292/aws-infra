@@ -417,6 +417,84 @@ resource "aws_eks_addon" "efs_csi" {
   ]
 }
 
+###############################
+## EFS Backup (AWS Backup) ##
+###############################
+resource "aws_backup_vault" "efs" {
+  count = var.enable_efs_csi_driver && var.enable_efs_backup ? 1 : 0
+
+  name = "${var.cluster_name}-efs-backup-vault"
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_name}-efs-backup-vault"
+  })
+}
+
+resource "aws_iam_role" "efs_backup" {
+  count = var.enable_efs_csi_driver && var.enable_efs_backup ? 1 : 0
+
+  name = "${var.cluster_name}-efs-backup-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "backup.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "efs_backup" {
+  count = var.enable_efs_csi_driver && var.enable_efs_backup ? 1 : 0
+
+  role       = aws_iam_role.efs_backup[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForBackup"
+}
+
+resource "aws_iam_role_policy_attachment" "efs_backup_restore" {
+  count = var.enable_efs_csi_driver && var.enable_efs_backup ? 1 : 0
+
+  role       = aws_iam_role.efs_backup[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSBackupServiceRolePolicyForRestores"
+}
+
+resource "aws_backup_plan" "efs" {
+  count = var.enable_efs_csi_driver && var.enable_efs_backup ? 1 : 0
+
+  name = "${var.cluster_name}-efs-backup-plan"
+
+  rule {
+    rule_name         = "daily-efs-backup"
+    target_vault_name = aws_backup_vault.efs[0].name
+    schedule          = var.efs_backup_schedule
+
+    lifecycle {
+      delete_after = var.efs_backup_retention_days
+    }
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_name}-efs-backup-plan"
+  })
+}
+
+resource "aws_backup_selection" "efs" {
+  count = var.enable_efs_csi_driver && var.enable_efs_backup ? 1 : 0
+
+  name         = "${var.cluster_name}-efs-selection"
+  iam_role_arn = aws_iam_role.efs_backup[0].arn
+  plan_id      = aws_backup_plan.efs[0].id
+  resources    = [aws_efs_file_system.this[0].arn]
+
+  depends_on = [
+    aws_iam_role_policy_attachment.efs_backup,
+    aws_iam_role_policy_attachment.efs_backup_restore
+  ]
+}
+
 
 ###############################
 ## ALB Controller ##

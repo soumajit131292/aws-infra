@@ -33,6 +33,7 @@ module "eks" {
   enable_prefix_delegation        = true
   warm_prefix_target              = 1
   enable_cloudwatch_observability = true
+  enable_efs_backup               = var.enable_efs_backup
   enable_spot_runner_node_group   = var.enable_spot_runner_node_group
   spot_runner_instance_types      = var.spot_runner_instance_types
   spot_runner_min_size            = var.spot_runner_min_size
