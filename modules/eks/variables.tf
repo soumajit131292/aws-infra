@@ -62,7 +62,7 @@ variable "efs_performance_mode" {
 variable "efs_throughput_mode" {
   description = "Throughput mode for EFS."
   type        = string
-  default     = "bursting"
+  default     = "elastic"
 }
 
 variable "enable_efs_backup" {
