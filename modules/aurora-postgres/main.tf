@@ -1,7 +1,8 @@
 locals {
-  final_snapshot_identifier = var.skip_final_snapshot ? null : var.final_snapshot_identifier
-  rds_proxy_name            = trimspace(var.rds_proxy_name) != "" ? trimspace(var.rds_proxy_name) : "${var.cluster_identifier}-proxy"
-  rds_proxy_subnet_ids      = length(var.rds_proxy_subnet_ids) > 0 ? var.rds_proxy_subnet_ids : var.db_subnet_ids
+  final_snapshot_identifier              = var.skip_final_snapshot ? null : var.final_snapshot_identifier
+  rds_proxy_name                         = trimspace(var.rds_proxy_name) != "" ? trimspace(var.rds_proxy_name) : "${var.cluster_identifier}-proxy"
+  rds_proxy_subnet_ids                   = length(var.rds_proxy_subnet_ids) > 0 ? var.rds_proxy_subnet_ids : var.db_subnet_ids
+  enhanced_monitoring_role_arn_effective = trimspace(var.enhanced_monitoring_role_arn) != "" ? trimspace(var.enhanced_monitoring_role_arn) : try(aws_iam_role.rds_enhanced_monitoring[0].arn, null)
 }
 
 resource "aws_db_subnet_group" "this" {
@@ -155,10 +156,43 @@ resource "aws_rds_cluster_instance" "this" {
   publicly_accessible          = false
   auto_minor_version_upgrade   = var.auto_minor_version_upgrade
   performance_insights_enabled = var.performance_insights_enabled
+  monitoring_interval          = var.enhanced_monitoring_interval
+  monitoring_role_arn          = var.enhanced_monitoring_interval > 0 ? local.enhanced_monitoring_role_arn_effective : null
+
+  lifecycle {
+    precondition {
+      condition     = var.enhanced_monitoring_interval == 0 || local.enhanced_monitoring_role_arn_effective != null
+      error_message = "enhanced_monitoring_interval > 0 requires enhanced_monitoring_role_arn or module-created enhanced monitoring role."
+    }
+  }
 
   tags = merge(var.tags, {
     Name = "${var.cluster_identifier}-${count.index + 1}"
   })
+}
+
+resource "aws_iam_role" "rds_enhanced_monitoring" {
+  count = var.enhanced_monitoring_interval > 0 && length(trimspace(var.enhanced_monitoring_role_arn)) == 0 ? 1 : 0
+
+  name = "${var.cluster_identifier}-enhanced-monitoring"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Principal = {
+        Service = "monitoring.rds.amazonaws.com"
+      }
+      Action = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "rds_enhanced_monitoring" {
+  count = var.enhanced_monitoring_interval > 0 && length(trimspace(var.enhanced_monitoring_role_arn)) == 0 ? 1 : 0
+
+  role       = aws_iam_role.rds_enhanced_monitoring[0].name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole"
 }
 
 resource "aws_iam_role" "rds_proxy" {

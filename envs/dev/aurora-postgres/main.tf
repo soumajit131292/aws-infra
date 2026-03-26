@@ -42,6 +42,8 @@ module "aurora_postgres" {
   copy_tags_to_snapshot             = var.copy_tags_to_snapshot
   enabled_cloudwatch_logs_exports   = var.enabled_cloudwatch_logs_exports
   performance_insights_enabled      = var.performance_insights_enabled
+  enhanced_monitoring_interval      = var.enhanced_monitoring_interval
+  enhanced_monitoring_role_arn      = var.enhanced_monitoring_role_arn
   auto_minor_version_upgrade        = var.auto_minor_version_upgrade
   enable_rds_proxy                  = var.enable_rds_proxy
   rds_proxy_name                    = var.rds_proxy_name

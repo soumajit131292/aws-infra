@@ -93,6 +93,25 @@ kubectl run psql-client \
 postgresql://<username>:<password>@<cluster-endpoint>:5432/appdb
 ```
 
+## Manual Snapshot Before Schema Changes
+
+Create a manual Aurora cluster snapshot before running Flyway/schema migrations.
+
+```bash
+cd envs/dev/aurora-postgres
+./scripts/create-pre-schema-snapshot.sh \
+  --cluster-id dev-aurora-postgres \
+  --change-id CHG-1234 \
+  --region us-east-1 \
+  --wait
+```
+
+Recommended process:
+1. Create snapshot and wait for `available`.
+2. Record snapshot ID in the change ticket/release notes.
+3. Run schema migration.
+4. If rollback is needed, restore a new cluster from that snapshot.
+
 ## Quick Troubleshooting
 
 - `psql: could not translate host name`

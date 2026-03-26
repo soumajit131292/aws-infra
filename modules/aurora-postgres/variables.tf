@@ -71,6 +71,11 @@ variable "backup_retention_period" {
   description = "Number of days to retain backups"
   type        = number
   default     = 7
+
+  validation {
+    condition     = var.backup_retention_period >= 7 && var.backup_retention_period <= 30
+    error_message = "backup_retention_period must be between 7 and 30 days."
+  }
 }
 
 variable "preferred_backup_window" {
@@ -137,6 +142,18 @@ variable "performance_insights_enabled" {
   description = "Enable Performance Insights on instances"
   type        = bool
   default     = true
+}
+
+variable "enhanced_monitoring_interval" {
+  description = "Enhanced Monitoring interval in seconds. Use 0 to disable."
+  type        = number
+  default     = 0
+}
+
+variable "enhanced_monitoring_role_arn" {
+  description = "Optional existing IAM role ARN for RDS Enhanced Monitoring. If empty and interval > 0, module creates one."
+  type        = string
+  default     = ""
 }
 
 variable "auto_minor_version_upgrade" {

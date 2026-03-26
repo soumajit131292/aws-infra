@@ -148,6 +148,18 @@ variable "performance_insights_enabled" {
   default     = true
 }
 
+variable "enhanced_monitoring_interval" {
+  description = "Enhanced Monitoring interval in seconds. Use 0 to disable."
+  type        = number
+  default     = 60
+}
+
+variable "enhanced_monitoring_role_arn" {
+  description = "Optional existing IAM role ARN for RDS Enhanced Monitoring."
+  type        = string
+  default     = ""
+}
+
 variable "auto_minor_version_upgrade" {
   description = "Enable auto minor version upgrades for instances"
   type        = bool
