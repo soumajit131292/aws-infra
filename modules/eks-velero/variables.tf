@@ -74,6 +74,18 @@ variable "velero_image_tag" {
   default     = "v1.14.1"
 }
 
+variable "kubectl_image_repository" {
+  description = "Kubectl image repository used by Velero CRD jobs."
+  type        = string
+  default     = "docker.io/bitnami/kubectl"
+}
+
+variable "kubectl_image_tag" {
+  description = "Kubectl image tag used by Velero CRD jobs."
+  type        = string
+  default     = "latest"
+}
+
 variable "extra_values" {
   description = "Additional helm values snippets"
   type        = list(string)

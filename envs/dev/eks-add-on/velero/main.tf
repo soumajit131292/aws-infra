@@ -264,16 +264,18 @@ resource "kubernetes_service_account" "velero" {
 module "velero_helm" {
   source = "../../../../modules/eks-velero"
 
-  release_name            = var.helm_release_name
-  namespace               = kubernetes_namespace.velero.metadata[0].name
-  use_local_chart         = var.use_local_chart
-  chart_version           = var.velero_chart_version
-  service_account_name    = kubernetes_service_account.velero.metadata[0].name
-  backup_bucket_name      = local.backup_bucket_name_effective
-  aws_region              = var.region
-  velero_image_repository = var.velero_image_repository
-  velero_image_tag        = var.velero_image_tag
-  aws_plugin_image        = var.velero_plugin_image
+  release_name             = var.helm_release_name
+  namespace                = kubernetes_namespace.velero.metadata[0].name
+  use_local_chart          = var.use_local_chart
+  chart_version            = var.velero_chart_version
+  service_account_name     = kubernetes_service_account.velero.metadata[0].name
+  backup_bucket_name       = local.backup_bucket_name_effective
+  aws_region               = var.region
+  velero_image_repository  = var.velero_image_repository
+  velero_image_tag         = var.velero_image_tag
+  aws_plugin_image         = var.velero_plugin_image
+  kubectl_image_repository = var.kubectl_image_repository
+  kubectl_image_tag        = var.kubectl_image_tag
   extra_values = [
     yamlencode({
       schedules = var.enable_default_backup_schedule ? {

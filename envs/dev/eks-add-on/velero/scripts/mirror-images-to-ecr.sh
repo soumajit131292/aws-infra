@@ -19,6 +19,7 @@ SUFFIX="${SUFFIX:-amd64-platform}"
 IMAGES=(
   "velero/velero:v1.14.1"
   "velero/velero-plugin-for-aws:v1.10.0"
+  "docker.io/bitnami/kubectl:latest"
 )
 
 echo "Logging into ECR registry ${ECR_REGISTRY}"
@@ -70,3 +71,5 @@ echo "Use these values in envs/dev/eks-add-on/velero/terraform.tfvars:"
 echo "velero_image_repository = \"${ECR_REGISTRY}/${ECR_PREFIX}/velero\""
 echo "velero_image_tag        = \"v1.14.1-${SUFFIX}\""
 echo "velero_plugin_image     = \"${ECR_REGISTRY}/${ECR_PREFIX}/velero-plugin-for-aws:v1.10.0-${SUFFIX}\""
+echo "kubectl_image_repository = \"${ECR_REGISTRY}/${ECR_PREFIX}/kubectl\""
+echo "kubectl_image_tag        = \"latest-${SUFFIX}\""

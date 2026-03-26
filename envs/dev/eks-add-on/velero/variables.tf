@@ -103,6 +103,18 @@ variable "velero_plugin_image" {
   default     = "velero/velero-plugin-for-aws:v1.10.0"
 }
 
+variable "kubectl_image_repository" {
+  description = "Kubectl image repository used by Velero upgrade/cleanup CRD jobs."
+  type        = string
+  default     = "docker.io/bitnami/kubectl"
+}
+
+variable "kubectl_image_tag" {
+  description = "Kubectl image tag used by Velero upgrade/cleanup CRD jobs."
+  type        = string
+  default     = "latest"
+}
+
 variable "enable_default_backup_schedule" {
   description = "Create a default Velero backup schedule."
   type        = bool

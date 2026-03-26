@@ -12,6 +12,13 @@ resource "helm_release" "velero" {
         tag        = var.velero_image_tag
       }
 
+      kubectl = {
+        image = {
+          repository = var.kubectl_image_repository
+          tag        = var.kubectl_image_tag
+        }
+      }
+
       serviceAccount = {
         server = {
           create = false
