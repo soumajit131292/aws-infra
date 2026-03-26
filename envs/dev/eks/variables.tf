@@ -54,9 +54,3 @@ variable "spot_runner_taint_value" {
   type        = string
   default     = "github-runners"
 }
-
-variable "enable_efs_backup" {
-  description = "Enable AWS Backup for EFS created in EKS module."
-  type        = bool
-  default     = true
-}
