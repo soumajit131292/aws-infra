@@ -27,9 +27,9 @@ scrape_configs:
 
     metric_relabel_configs:
       # Keep only accesshub namespace
-      - source_labels: [namespace]
-        regex: "accesshub"
-        action: keep
+      # - source_labels: [namespace]
+      #   regex: "accesshub"
+      #   action: keep
 
       # Keep only CPU + memory
       - source_labels: [__name__]
