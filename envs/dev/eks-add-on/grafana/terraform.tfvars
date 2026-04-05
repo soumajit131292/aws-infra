@@ -20,3 +20,12 @@ irsa_role_name        = ""
 enable_amp_datasource = true
 amp_workspace_arn     = ""
 amp_datasource_name   = "AMP"
+
+grafana_extra_values = [
+  <<-EOT
+grafana.ini:
+  server:
+    root_url: "%(protocol)s://%(domain)s/grafana/"
+    serve_from_sub_path: true
+EOT
+]

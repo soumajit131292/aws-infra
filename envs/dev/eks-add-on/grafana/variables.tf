@@ -99,3 +99,9 @@ variable "amp_datasource_name" {
   type        = string
   default     = "AMP"
 }
+
+variable "grafana_extra_values" {
+  description = "Additional Helm values snippets for Grafana."
+  type        = list(string)
+  default     = []
+}
