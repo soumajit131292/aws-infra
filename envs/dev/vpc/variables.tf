@@ -12,6 +12,12 @@ variable "firewall_subnets" {
   type = map(string)
 }
 
+variable "enable_network_firewall" {
+  description = "Enable AWS Network Firewall for VPC egress inspection."
+  type        = bool
+  default     = false
+}
+
 variable "private_app_subnets" {
   type = map(string)
 }

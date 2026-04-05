@@ -16,6 +16,12 @@ variable "firewall_subnets" {
   type = map(string)
 }
 
+variable "enable_network_firewall" {
+  description = "Enable AWS Network Firewall and route private app egress through firewall endpoints."
+  type        = bool
+  default     = true
+}
+
 variable "private_db_subnets" {
   type = map(string)
 }

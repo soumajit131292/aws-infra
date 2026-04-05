@@ -1,8 +1,8 @@
 locals {
-  firewall_endpoint_by_az = {
-    for s in tolist(aws_networkfirewall_firewall.this.firewall_status[0].sync_states) :
+  firewall_endpoint_by_az = var.enable_network_firewall ? {
+    for s in tolist(aws_networkfirewall_firewall.this[0].firewall_status[0].sync_states) :
     s.availability_zone => s.attachment[0].endpoint_id
-  }
+  } : {}
 }
 
 ###############################
@@ -185,6 +185,8 @@ resource "aws_route_table_association" "private_db" {
 # }
 
 resource "aws_networkfirewall_rule_group" "stateless" {
+  count = var.enable_network_firewall ? 1 : 0
+
   name     = "${var.name}-stateless"
   capacity = 100
   type     = "STATELESS"
@@ -271,6 +273,8 @@ resource "aws_networkfirewall_rule_group" "stateless" {
 ## Firewall Policy
 ###############################
 resource "aws_networkfirewall_firewall_policy" "this" {
+  count = var.enable_network_firewall ? 1 : 0
+
   name = "${var.name}-fw-policy"
 
   firewall_policy {
@@ -279,11 +283,11 @@ resource "aws_networkfirewall_firewall_policy" "this" {
 
     stateless_rule_group_reference {
       priority     = 10
-      resource_arn = aws_networkfirewall_rule_group.stateless.arn
+      resource_arn = aws_networkfirewall_rule_group.stateless[0].arn
     }
 
     stateful_rule_group_reference {
-      resource_arn = aws_networkfirewall_rule_group.stateful.arn
+      resource_arn = aws_networkfirewall_rule_group.stateful[0].arn
     }
   }
 }
@@ -371,9 +375,11 @@ resource "aws_network_acl_rule" "db_out_ephemeral" {
 ###############################
 
 resource "aws_networkfirewall_firewall" "this" {
+  count = var.enable_network_firewall ? 1 : 0
+
   name                = "${var.name}-fw"
   vpc_id              = aws_vpc.this.id
-  firewall_policy_arn = aws_networkfirewall_firewall_policy.this.arn
+  firewall_policy_arn = aws_networkfirewall_firewall_policy.this[0].arn
 
   dynamic "subnet_mapping" {
     for_each = aws_subnet.firewall
@@ -408,12 +414,20 @@ resource "aws_route_table_association" "firewall" {
 ## Private → Firewall → NAT
 ###############################
 resource "aws_route" "private_to_fw" {
-  for_each = aws_subnet.private_app
+  for_each = var.enable_network_firewall ? aws_subnet.private_app : {}
 
   route_table_id         = aws_route_table.private_app[each.key].id
   destination_cidr_block = "0.0.0.0/0"
 
   vpc_endpoint_id = local.firewall_endpoint_by_az[each.value.availability_zone]
+}
+
+resource "aws_route" "private_to_nat" {
+  for_each = var.enable_network_firewall ? {} : aws_subnet.private_app
+
+  route_table_id         = aws_route_table.private_app[each.key].id
+  destination_cidr_block = "0.0.0.0/0"
+  nat_gateway_id         = aws_nat_gateway.this[each.key].id
 }
 
 
@@ -428,7 +442,7 @@ resource "aws_route" "fw_to_nat" {
 }
 
 resource "aws_subnet" "firewall" {
-  for_each = var.firewall_subnets
+  for_each = var.enable_network_firewall ? var.firewall_subnets : {}
 
   vpc_id            = aws_vpc.this.id
   cidr_block        = each.value
@@ -473,6 +487,8 @@ resource "aws_cloudwatch_log_group" "vpc_flow" {
   retention_in_days = 7
 }
 resource "aws_cloudwatch_log_group" "firewall" {
+  count = var.enable_network_firewall ? 1 : 0
+
   name              = "/aws/network-firewall/${var.name}"
   retention_in_days = 7
 
@@ -516,15 +532,17 @@ resource "aws_flow_log" "this" {
 }
 
 resource "aws_networkfirewall_logging_configuration" "this" {
+  count = var.enable_network_firewall ? 1 : 0
+
   depends_on = [
     aws_cloudwatch_log_group.firewall
   ]
-  firewall_arn = aws_networkfirewall_firewall.this.arn
+  firewall_arn = aws_networkfirewall_firewall.this[0].arn
 
   logging_configuration {
     log_destination_config {
       log_destination = {
-        logGroup = aws_cloudwatch_log_group.firewall.name
+        logGroup = aws_cloudwatch_log_group.firewall[0].name
       }
       log_destination_type = "CloudWatchLogs"
       log_type             = "FLOW"
@@ -532,7 +550,7 @@ resource "aws_networkfirewall_logging_configuration" "this" {
 
     log_destination_config {
       log_destination = {
-        logGroup = aws_cloudwatch_log_group.firewall.name
+        logGroup = aws_cloudwatch_log_group.firewall[0].name
       }
       log_destination_type = "CloudWatchLogs"
       log_type             = "ALERT"
@@ -637,6 +655,8 @@ resource "aws_security_group" "db" {
 }
 
 resource "aws_networkfirewall_rule_group" "stateful" {
+  count = var.enable_network_firewall ? 1 : 0
+
   name     = "${var.name}-stateful"
   capacity = 100
   type     = "STATEFUL"
