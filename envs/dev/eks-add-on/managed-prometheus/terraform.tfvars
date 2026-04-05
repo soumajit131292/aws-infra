@@ -21,12 +21,12 @@ scrape_configs:
         regex: __meta_kubernetes_node_label_(.+)
 
     metric_relabel_configs:
-      # ✅ Keep only accesshub namespace
+      # Keep only accesshub namespace
       - source_labels: [namespace]
         regex: "accesshub"
         action: keep
 
-      # ✅ Keep only CPU + memory
+      # Keep only CPU + memory
       - source_labels: [__name__]
         regex: "container_cpu_usage_seconds_total|container_memory_usage_bytes"
         action: keep
@@ -37,7 +37,7 @@ scrape_configs:
 
     relabel_configs:
       - source_labels: [__meta_kubernetes_service_name]
-        regex: "node-exporter"
+        regex: ".*node-exporter.*"
         action: keep
 
     metric_relabel_configs:
