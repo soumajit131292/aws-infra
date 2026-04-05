@@ -17,3 +17,13 @@ output "grafana_amp_datasource_url" {
   description = "Configured AMP datasource URL in Grafana."
   value       = module.grafana.amp_datasource_url
 }
+
+output "grafana_ingress_name" {
+  description = "Grafana Ingress name."
+  value       = try(kubernetes_ingress_v1.grafana[0].metadata[0].name, null)
+}
+
+output "grafana_ingress_alb_hostname" {
+  description = "ALB hostname assigned to Grafana Ingress."
+  value       = try(kubernetes_ingress_v1.grafana[0].status[0].load_balancer[0].ingress[0].hostname, null)
+}

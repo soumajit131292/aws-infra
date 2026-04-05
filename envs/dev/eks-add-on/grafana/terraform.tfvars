@@ -29,3 +29,22 @@ grafana.ini:
     serve_from_sub_path: true
 EOT
 ]
+
+enable_grafana_ingress       = true
+grafana_ingress_name         = "grafana-ingress"
+grafana_ingress_class_name   = "alb"
+grafana_ingress_host         = ""
+grafana_ingress_path         = "/grafana"
+grafana_ingress_service_name = "grafana"
+grafana_ingress_service_port = 80
+
+grafana_ingress_annotations = {
+  "alb.ingress.kubernetes.io/backend-protocol" = "HTTP"
+  "alb.ingress.kubernetes.io/group.name"       = "accesshub-dev"
+  "alb.ingress.kubernetes.io/healthcheck-path" = "/api/health"
+  "alb.ingress.kubernetes.io/inbound-cidrs"    = "0.0.0.0/0"
+  "alb.ingress.kubernetes.io/listen-ports"     = "[{\"HTTP\":80}]"
+  "alb.ingress.kubernetes.io/scheme"           = "internet-facing"
+  "alb.ingress.kubernetes.io/success-codes"    = "200-399"
+  "alb.ingress.kubernetes.io/target-type"      = "ip"
+}

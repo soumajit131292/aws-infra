@@ -105,3 +105,60 @@ variable "grafana_extra_values" {
   type        = list(string)
   default     = []
 }
+
+variable "enable_grafana_ingress" {
+  description = "Whether to create Grafana Ingress."
+  type        = bool
+  default     = true
+}
+
+variable "grafana_ingress_name" {
+  description = "Name of Grafana Ingress resource."
+  type        = string
+  default     = "grafana-ingress"
+}
+
+variable "grafana_ingress_class_name" {
+  description = "Ingress class name for Grafana Ingress."
+  type        = string
+  default     = "alb"
+}
+
+variable "grafana_ingress_host" {
+  description = "Optional host for Grafana Ingress. Leave empty to match all hosts."
+  type        = string
+  default     = ""
+}
+
+variable "grafana_ingress_path" {
+  description = "Path for Grafana Ingress route."
+  type        = string
+  default     = "/grafana"
+}
+
+variable "grafana_ingress_service_name" {
+  description = "Service name used by Grafana Ingress backend."
+  type        = string
+  default     = "grafana"
+}
+
+variable "grafana_ingress_service_port" {
+  description = "Service port used by Grafana Ingress backend."
+  type        = number
+  default     = 80
+}
+
+variable "grafana_ingress_annotations" {
+  description = "Annotations applied to Grafana Ingress."
+  type        = map(string)
+  default = {
+    "alb.ingress.kubernetes.io/backend-protocol" = "HTTP"
+    "alb.ingress.kubernetes.io/group.name"       = "accesshub-dev"
+    "alb.ingress.kubernetes.io/healthcheck-path" = "/api/health"
+    "alb.ingress.kubernetes.io/inbound-cidrs"    = "0.0.0.0/0"
+    "alb.ingress.kubernetes.io/listen-ports"     = "[{\"HTTP\":80}]"
+    "alb.ingress.kubernetes.io/scheme"           = "internet-facing"
+    "alb.ingress.kubernetes.io/success-codes"    = "200-399"
+    "alb.ingress.kubernetes.io/target-type"      = "ip"
+  }
+}
