@@ -32,7 +32,7 @@ scrape_configs:
   #     - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
   #       action: replace
   #       regex: ([^:]+)(?::\\d+)?;(\\d+)
-  #       replacement: $$1:$$2
+  #       replacement: $1:$2
   #       target_label: __address__
 
   #   metric_relabel_configs:
@@ -58,7 +58,7 @@ scrape_configs:
       - source_labels: [__meta_kubernetes_node_name]
         target_label: __metrics_path__
         regex: (.+)
-        replacement: /api/v1/nodes/$$1/proxy/metrics/cadvisor
+        replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
 
       - action: labelmap
         regex: __meta_kubernetes_node_label_(.+)
