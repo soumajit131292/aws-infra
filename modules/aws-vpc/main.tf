@@ -414,20 +414,13 @@ resource "aws_route_table_association" "firewall" {
 ## Private → Firewall → NAT
 ###############################
 resource "aws_route" "private_to_fw" {
-  for_each = var.enable_network_firewall ? aws_subnet.private_app : {}
+  for_each = aws_subnet.private_app
 
   route_table_id         = aws_route_table.private_app[each.key].id
   destination_cidr_block = "0.0.0.0/0"
 
-  vpc_endpoint_id = local.firewall_endpoint_by_az[each.value.availability_zone]
-}
-
-resource "aws_route" "private_to_nat" {
-  for_each = var.enable_network_firewall ? {} : aws_subnet.private_app
-
-  route_table_id         = aws_route_table.private_app[each.key].id
-  destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.this[each.key].id
+  vpc_endpoint_id = var.enable_network_firewall ? local.firewall_endpoint_by_az[each.value.availability_zone] : null
+  nat_gateway_id  = var.enable_network_firewall ? null : aws_nat_gateway.this[each.key].id
 }
 
 
