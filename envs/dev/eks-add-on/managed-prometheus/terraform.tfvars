@@ -13,13 +13,15 @@ scrape_configs:
       - role: node
 
     scheme: https
+    bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
     tls_config:
+      ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
       insecure_skip_verify: true
 
     relabel_configs:
       - source_labels: [__meta_kubernetes_node_name]
         target_label: __metrics_path__
-        replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+        replacement: /api/v1/nodes/$1/proxy/metrics/cadvisor
       - target_label: __address__
         replacement: kubernetes.default.svc:443
       - action: labelmap
@@ -27,9 +29,9 @@ scrape_configs:
 
     metric_relabel_configs:
       # Keep only accesshub namespace
-      # - source_labels: [namespace]
-      #   regex: "accesshub"
-      #   action: keep
+      - source_labels: [namespace]
+        regex: "accesshub"
+        action: keep
 
       # Keep only CPU + memory
       - source_labels: [__name__]
