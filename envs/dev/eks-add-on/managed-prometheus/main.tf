@@ -19,7 +19,7 @@ resource "aws_prometheus_scraper" "eks" {
     }
   }
 
-  scrape_configuration = base64encode(var.scrape_configuration_yaml)
+  scrape_configuration = var.scrape_configuration_yaml
 
   source {
     eks {
