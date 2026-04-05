@@ -54,3 +54,15 @@ variable "spot_runner_taint_value" {
   type        = string
   default     = "github-runners"
 }
+
+variable "enable_metrics_server_addon" {
+  description = "Enable EKS managed metrics-server add-on."
+  type        = bool
+  default     = true
+}
+
+variable "metrics_server_addon_version" {
+  description = "Optional managed add-on version for metrics-server."
+  type        = string
+  default     = ""
+}

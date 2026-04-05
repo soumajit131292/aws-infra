@@ -287,6 +287,14 @@ resource "aws_eks_addon" "cloudwatch_observability" {
   addon_name   = "amazon-cloudwatch-observability"
 }
 
+resource "aws_eks_addon" "metrics_server" {
+  count = var.enable_metrics_server_addon ? 1 : 0
+
+  cluster_name  = aws_eks_cluster.this.name
+  addon_name    = "metrics-server"
+  addon_version = trimspace(var.metrics_server_addon_version) != "" ? trimspace(var.metrics_server_addon_version) : null
+}
+
 resource "aws_iam_role" "ebs_csi" {
   name = "${var.cluster_name}-ebs-csi"
 

@@ -33,6 +33,8 @@ module "eks" {
   enable_prefix_delegation        = true
   warm_prefix_target              = 1
   enable_cloudwatch_observability = true
+  enable_metrics_server_addon     = var.enable_metrics_server_addon
+  metrics_server_addon_version    = var.metrics_server_addon_version
   enable_efs_backup               = true
   enable_spot_runner_node_group   = var.enable_spot_runner_node_group
   spot_runner_instance_types      = var.spot_runner_instance_types

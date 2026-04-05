@@ -124,3 +124,15 @@ variable "enable_cloudwatch_observability" {
   type        = bool
   default     = false
 }
+
+variable "enable_metrics_server_addon" {
+  description = "Enable EKS managed metrics-server add-on."
+  type        = bool
+  default     = false
+}
+
+variable "metrics_server_addon_version" {
+  description = "Optional EKS managed add-on version for metrics-server. Leave empty to use default/latest compatible."
+  type        = string
+  default     = ""
+}
