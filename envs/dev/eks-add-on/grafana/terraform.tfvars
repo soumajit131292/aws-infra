@@ -1,6 +1,7 @@
 region = "us-east-1"
 
 namespace            = "monitoring"
+create_namespace     = false
 grafana_release_name = "grafana"
 
 grafana_chart_path = "../../../../modules/grafana/grafana"

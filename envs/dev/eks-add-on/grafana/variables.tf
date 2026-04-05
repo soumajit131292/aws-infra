@@ -10,6 +10,12 @@ variable "namespace" {
   default     = "monitoring"
 }
 
+variable "create_namespace" {
+  description = "Whether Grafana stack should create the namespace."
+  type        = bool
+  default     = false
+}
+
 variable "grafana_release_name" {
   description = "Helm release name for Grafana."
   type        = string

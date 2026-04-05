@@ -2,6 +2,7 @@ module "grafana" {
   source = "../../../../modules/eks-grafana"
 
   namespace                   = var.namespace
+  create_namespace            = var.create_namespace
   grafana_release_name        = var.grafana_release_name
   grafana_chart_path          = var.grafana_chart_path
   grafana_image_registry      = var.grafana_image_registry
