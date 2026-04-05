@@ -17,6 +17,11 @@ scrape_configs:
       insecure_skip_verify: true
 
     relabel_configs:
+      - source_labels: [__meta_kubernetes_node_name]
+        target_label: __metrics_path__
+        replacement: /api/v1/nodes/${1}/proxy/metrics/cadvisor
+      - target_label: __address__
+        replacement: kubernetes.default.svc:443
       - action: labelmap
         regex: __meta_kubernetes_node_label_(.+)
 
