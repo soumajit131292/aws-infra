@@ -58,6 +58,63 @@ variable "init_chown_image_tag" {
   default     = "1.31.1"
 }
 
+variable "cluster_name" {
+  description = "EKS cluster name used to build default IAM role name."
+  type        = string
+}
+
+variable "oidc_provider_arn" {
+  description = "OIDC provider ARN for IRSA."
+  type        = string
+}
+
+variable "oidc_issuer_url" {
+  description = "OIDC issuer URL for IRSA condition keys."
+  type        = string
+}
+
+variable "service_account_name" {
+  description = "Grafana Kubernetes service account name."
+  type        = string
+  default     = "grafana"
+}
+
+variable "enable_irsa" {
+  description = "Create IRSA role and annotate Grafana service account."
+  type        = bool
+  default     = true
+}
+
+variable "irsa_role_name" {
+  description = "Optional custom IAM role name for Grafana IRSA."
+  type        = string
+  default     = ""
+}
+
+variable "enable_amp_datasource" {
+  description = "Configure AMP datasource in Grafana values."
+  type        = bool
+  default     = true
+}
+
+variable "amp_workspace_arn" {
+  description = "Amazon Managed Prometheus workspace ARN used by Grafana datasource and IAM policy."
+  type        = string
+  default     = ""
+}
+
+variable "amp_region" {
+  description = "Region for AMP datasource endpoint and SigV4 auth."
+  type        = string
+  default     = "us-east-1"
+}
+
+variable "amp_datasource_name" {
+  description = "Grafana datasource name for AMP."
+  type        = string
+  default     = "AMP"
+}
+
 variable "grafana_extra_values" {
   description = "Additional values yaml snippets for Grafana."
   type        = list(string)
