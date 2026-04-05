@@ -14,12 +14,16 @@ init_chown_image_registry   = "495711089104.dkr.ecr.us-east-1.amazonaws.com"
 init_chown_image_repository = "thirdparty/busybox"
 init_chown_image_tag        = "1.31.1-amd64-platform"
 
-service_account_name  = "grafana"
-enable_irsa           = true
-irsa_role_name        = ""
-enable_amp_datasource = true
-amp_workspace_arn     = ""
-amp_datasource_name   = "AMP"
+service_account_name      = "grafana"
+enable_irsa               = true
+irsa_role_name            = ""
+enable_amp_datasource     = true
+amp_workspace_arn         = ""
+amp_datasource_name       = "AMP"
+amp_datasource_type       = "grafana-amazonprometheus-datasource"
+enable_amp_plugin_install = true
+amp_plugin_id             = "grafana-amazonprometheus-datasource"
+grafana_plugins           = []
 
 grafana_extra_values = [
   <<-EOT

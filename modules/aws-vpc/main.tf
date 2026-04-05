@@ -696,28 +696,8 @@ resource "aws_iam_instance_profile" "ec2_ssm" {
   role = aws_iam_role.ec2_ssm.name
 }
 
-### Interface Endpoints
-locals {
-  eks_endpoints = [
-    "eks",
-    "sts",
-    "ec2",
-    "ecr.api",
-    "ecr.dkr",
-    "logs",
-    "monitoring",
-    "ec2messages",
-    "ssmmessages",
-    "ssm",
-    "kms",
-    "secretsmanager",
-    "rds"
-  ]
-}
-
-
 resource "aws_vpc_endpoint" "eks_if" {
-  for_each = toset(local.eks_endpoints)
+  for_each = toset(var.interface_vpc_endpoints)
 
   vpc_id            = aws_vpc.this.id
   service_name      = "com.amazonaws.${var.region}.${each.key}"
@@ -730,6 +710,8 @@ resource "aws_vpc_endpoint" "eks_if" {
 }
 
 resource "aws_vpc_endpoint" "s3" {
+  count = var.enable_s3_gateway_endpoint ? 1 : 0
+
   vpc_id            = aws_vpc.this.id
   service_name      = "com.amazonaws.${var.region}.s3"
   vpc_endpoint_type = "Gateway"

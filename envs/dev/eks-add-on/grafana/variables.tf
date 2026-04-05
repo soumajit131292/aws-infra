@@ -100,6 +100,30 @@ variable "amp_datasource_name" {
   default     = "AMP"
 }
 
+variable "amp_datasource_type" {
+  description = "Grafana datasource plugin type for AMP."
+  type        = string
+  default     = "grafana-amazonprometheus-datasource"
+}
+
+variable "enable_amp_plugin_install" {
+  description = "Install AMP datasource plugin in Grafana."
+  type        = bool
+  default     = true
+}
+
+variable "amp_plugin_id" {
+  description = "Grafana AMP datasource plugin id."
+  type        = string
+  default     = "grafana-amazonprometheus-datasource"
+}
+
+variable "grafana_plugins" {
+  description = "Additional Grafana plugins to install."
+  type        = list(string)
+  default     = []
+}
+
 variable "grafana_extra_values" {
   description = "Additional Helm values snippets for Grafana."
   type        = list(string)

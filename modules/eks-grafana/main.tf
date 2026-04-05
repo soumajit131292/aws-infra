@@ -4,6 +4,7 @@ locals {
   irsa_role_name_effective     = trimspace(var.irsa_role_name) != "" ? trimspace(var.irsa_role_name) : "${var.cluster_name}-grafana-amp-irsa"
   amp_workspace_id             = trimspace(var.amp_workspace_arn) != "" ? element(split("/", var.amp_workspace_arn), 1) : ""
   amp_datasource_url           = local.amp_workspace_id != "" ? "https://aps-workspaces.${var.amp_region}.amazonaws.com/workspaces/${local.amp_workspace_id}" : ""
+  grafana_plugins_effective    = distinct(concat(var.grafana_plugins, var.enable_amp_plugin_install ? [var.amp_plugin_id] : []))
 }
 
 resource "kubernetes_namespace" "grafana" {
@@ -87,6 +88,7 @@ resource "helm_release" "grafana" {
           repository = var.grafana_image_repository
           tag        = var.grafana_image_tag
         }
+        plugins = local.grafana_plugins_effective
         testFramework = {
           enabled = false
         }
@@ -113,7 +115,7 @@ resource "helm_release" "grafana" {
             datasources = [
               {
                 name      = var.amp_datasource_name
-                type      = "prometheus"
+                type      = var.amp_datasource_type
                 access    = "proxy"
                 url       = local.amp_datasource_url
                 isDefault = true

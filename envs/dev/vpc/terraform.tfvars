@@ -27,6 +27,16 @@ firewall_subnets = {
 
 enable_network_firewall = false
 
+interface_vpc_endpoints = [
+  "ecr.api",
+  "ecr.dkr",
+  "sts",
+  "secretsmanager",
+  "kms"
+]
+
+enable_s3_gateway_endpoint = true
+
 tags = {
   env   = "dev"
   owner = "terraform-accesshub-platform"

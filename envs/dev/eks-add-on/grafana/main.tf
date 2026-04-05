@@ -20,6 +20,10 @@ module "grafana" {
   enable_amp_datasource       = var.enable_amp_datasource
   amp_region                  = var.region
   amp_datasource_name         = var.amp_datasource_name
+  amp_datasource_type         = var.amp_datasource_type
+  enable_amp_plugin_install   = var.enable_amp_plugin_install
+  amp_plugin_id               = var.amp_plugin_id
+  grafana_plugins             = var.grafana_plugins
   amp_workspace_arn           = trimspace(var.amp_workspace_arn) != "" ? trimspace(var.amp_workspace_arn) : data.terraform_remote_state.managed_prometheus.outputs.workspace_arn
   grafana_extra_values        = var.grafana_extra_values
 }
