@@ -3,9 +3,14 @@ plugin: amazon.aws.aws_ec2
 strict: false
 regions:
   - us-east-1
+  - eu-west-1
+  - eu-central-1
 
 filters:
-  tag:Name: dev-ubuntu-tools
+  tag:Name:
+    - dev-ubuntu-tools
+    - prod-ubuntu-jumphost
+    - prod-dr-ubuntu-jumphost
   instance-state-name: running
 
 hostnames:
@@ -15,9 +20,13 @@ compose:
   ansible_connection: "'amazon.aws.aws_ssm'"
   ansible_user: "'ssm-user'"
   ansible_remote_tmp: "'/tmp/.ansible/tmp'"
-  ansible_aws_ssm_region: "'us-east-1'"
+  ansible_aws_ssm_region: "placement.region"
   # Required by amazon.aws.aws_ssm to stage module payloads.
   ansible_aws_ssm_bucket_name: "'crave-infra-terraform-state-bucket'"
 
 groups:
-  ubuntu_vm: "tags.Name is defined and tags.Name == 'dev-ubuntu-tools'"
+  ubuntu_vm: "tags.Name is defined and tags.Name in ['dev-ubuntu-tools', 'prod-ubuntu-jumphost', 'prod-dr-ubuntu-jumphost']"
+
+keyed_groups:
+  - prefix: env
+    key: tags.env

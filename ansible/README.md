@@ -23,11 +23,13 @@ This playbook installs the following on Ubuntu:
 ## Dynamic discovery by VM name
 
 `inventory.aws_ec2.yml` discovers EC2 instances with:
-- `tag:Name = dev-ubuntu-tools`
+- `tag:Name in [dev-ubuntu-tools, prod-ubuntu-jumphost, prod-dr-ubuntu-jumphost]`
 - `instance-state-name = running`
+- regions: `us-east-1`, `eu-west-1`, `eu-central-1`
 
 Host is set to `instance_id` and connection uses SSM.
 SSM transport needs an S3 bucket for temporary module transfer (configured in inventory).
+SSM region is selected per instance from EC2 metadata.
 
 ## Setup
 
@@ -40,12 +42,23 @@ ansible-galaxy collection install -r requirements.yml
 
 ```bash
 ansible ubuntu_vm -m ping
+ansible env_dev -m ping
+ansible env_prod -m ping
+ansible env_prod_dr -m ping
 ```
 
 ## Run playbook
 
 ```bash
 ansible-playbook playbook-tools.yml
+```
+
+Run only one environment:
+
+```bash
+ansible-playbook playbook-tools.yml --limit env_dev
+ansible-playbook playbook-tools.yml --limit env_prod
+ansible-playbook playbook-tools.yml --limit env_prod_dr
 ```
 
 ## Optional: get instance-id directly with AWS CLI

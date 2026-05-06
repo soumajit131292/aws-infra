@@ -7,7 +7,7 @@ provider "aws" {
 }
 
 module "network" {
-  source                     = "../../../modules/aws-vpc"
+  source                     = "../../../../modules/aws-vpc"
   name                       = var.name
   vpc_cidr                   = var.vpc_cidr
   cluster_name               = var.cluster_name

@@ -1,6 +1,6 @@
 ---
 - name: Install DevOps tools on Ubuntu
-  hosts: all
+  hosts: ubuntu_vm
   become: true
   gather_facts: true
 
