@@ -1,0 +1,88 @@
+##################################
+# Terraform
+##################################
+
+# Local .terraform directories
+.terraform/
+**/.terraform/*
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash log files
+crash.log
+crash.*.log
+
+# Terraform CLI config files
+.terraformrc
+terraform.rc
+
+# Override files (used by terraform plan/apply -var-file)
+# *.tfvars
+*.tfvars.json
+
+# Lock file (KEEP or IGNORE? see note below)
+#.terraform.lock.hcl
+
+##################################
+# Sensitive files
+##################################
+
+# Environment variable files
+.env
+.env.*
+
+# Credentials
+*.pem
+*.key
+*.crt
+*.p12
+*.jks
+
+##################################
+# Editor / OS noise
+##################################
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
+
+# IntelliJ
+.idea/
+
+##################################
+# Logs
+##################################
+*.log
+
+##################################
+# Ansible (generated/local-only)
+##################################
+
+# Ansible runtime/temp/cache
+.ansible/
+ansible/.ansible/
+
+# Retry artifacts
+*.retry
+ansible/*.retry
+
+# Local inventory overrides / ad-hoc vars
+ansible/inventory.ini
+ansible/inventory.local*
+ansible/group_vars/all/local.yml
+ansible/host_vars/
+
+# Vault/password and private secrets
+*.vault
+*.vault.yml
+ansible/.vault_pass*
+ansible/vault_pass*
+
+##################################
+# Local architecture artifacts
+##################################
+architecture/

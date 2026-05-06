@@ -1,0 +1,325 @@
+---
+- name: Fail if not Ubuntu
+  fail:
+    msg: "This role supports Ubuntu only."
+  when: ansible_distribution != "Ubuntu"
+
+############################
+# APT HARDENING
+############################
+
+- name: Configure apt retry + IPv4
+  copy:
+    dest: /etc/apt/apt.conf.d/99hardening
+    mode: "0644"
+    content: |
+      Acquire::ForceIPv4 "true";
+      Acquire::Retries "3";
+      Acquire::http::Timeout "20";
+      Acquire::https::Timeout "20";
+
+- name: Install base packages
+  apt:
+    name:
+      - ca-certificates
+      - curl
+      - gnupg
+      - lsb-release
+      - unzip
+      - tar
+    state: present
+    update_cache: true
+
+############################
+# DOCKER (Pinned + Fingerprint Verified)
+############################
+
+- name: Ensure keyrings directory
+  file:
+    path: /etc/apt/keyrings
+    state: directory
+    mode: "0755"
+
+- name: Download Docker GPG key
+  get_url:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    dest: /etc/apt/keyrings/docker.asc
+    mode: "0644"
+
+- name: Validate Docker GPG fingerprint
+  shell: |
+    gpg --show-keys --with-colons /etc/apt/keyrings/docker.asc | awk -F: '/^fpr/ {print $10; exit}'
+  register: docker_fpr
+  changed_when: false
+
+- name: Fail if Docker fingerprint mismatch
+  fail:
+    msg: "Docker GPG fingerprint mismatch!"
+  when: docker_fpr.stdout != devops_tools_docker_gpg_expected_fingerprint
+
+- name: Add Docker repository
+  apt_repository:
+    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    filename: docker
+    state: present
+
+- name: Install pinned Docker version
+  block:
+    - name: Try installing pinned Docker version
+      ansible.builtin.apt:
+        name:
+          - "docker-ce={{ devops_tools_docker_version }}"
+          - "docker-ce-cli={{ devops_tools_docker_version }}"
+        state: present
+        update_cache: true
+      when: devops_tools_docker_version | default("") | length > 0
+
+    - name: Install latest Docker packages when pin is not set
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+        state: present
+        update_cache: true
+      when: devops_tools_docker_version | default("") | length == 0
+  rescue:
+    - name: Fallback to latest Docker packages if pinned version is unavailable
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+        state: present
+        update_cache: true
+
+- name: Hold Docker packages
+  command: apt-mark hold docker-ce docker-ce-cli
+  changed_when: false
+
+- name: Ensure Docker running
+  service:
+    name: docker
+    enabled: true
+    state: started
+
+- name: Validate Docker health
+  command: docker info
+  changed_when: false
+
+############################
+# KUBECTL (SHA Driven Idempotent)
+############################
+
+- name: Check kubectl version
+  command: kubectl version --client --output=yaml
+  register: kubectl_check
+  changed_when: false
+  failed_when: false
+
+- name: Determine if kubectl upgrade required
+  set_fact:
+    kubectl_upgrade_required: >-
+      {{
+        (kubectl_check.rc != 0)
+        or
+        (kubectl_check.stdout is not search('v' ~ devops_tools_kubectl_version))
+      }}
+
+- name: Determine kubectl architecture suffix
+  set_fact:
+    devops_tools_kubectl_arch: "{{ 'arm64' if ansible_architecture in ['aarch64', 'arm64'] else 'amd64' }}"
+  when: kubectl_upgrade_required
+
+- name: Download kubectl if required
+  get_url:
+    url: "https://dl.k8s.io/release/v{{ devops_tools_kubectl_version }}/bin/linux/{{ devops_tools_kubectl_arch }}/kubectl"
+    dest: "/tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}"
+    mode: "0755"
+  when: kubectl_upgrade_required
+
+- name: Resolve kubectl checksum source
+  block:
+    - name: Use provided kubectl checksum
+      set_fact:
+        devops_tools_kubectl_sha256_effective: "{{ devops_tools_kubectl_sha256 }}"
+      when: devops_tools_kubectl_sha256 is not match('^REPLACE')
+
+    - name: Download kubectl checksum from upstream
+      get_url:
+        url: "https://dl.k8s.io/release/v{{ devops_tools_kubectl_version }}/bin/linux/{{ devops_tools_kubectl_arch }}/kubectl.sha256"
+        dest: "/tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}.sha256"
+      when: devops_tools_kubectl_sha256 is match('^REPLACE')
+
+    - name: Read kubectl checksum file from target
+      command: "cat /tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}.sha256"
+      register: devops_tools_kubectl_sha256_remote
+      changed_when: false
+      when: devops_tools_kubectl_sha256 is match('^REPLACE')
+
+    - name: Set effective kubectl checksum from upstream
+      set_fact:
+        devops_tools_kubectl_sha256_effective: "{{ devops_tools_kubectl_sha256_remote.stdout | trim }}"
+      when: devops_tools_kubectl_sha256 is match('^REPLACE')
+  when: kubectl_upgrade_required
+
+- name: Verify kubectl checksum
+  shell: |
+    echo "{{ devops_tools_kubectl_sha256_effective }}  /tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}" | sha256sum -c -
+  changed_when: false
+  when: kubectl_upgrade_required
+
+- name: Install kubectl binary
+  copy:
+    src: "/tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}"
+    dest: /usr/local/bin/kubectl
+    mode: "0755"
+    remote_src: true
+  when: kubectl_upgrade_required
+
+
+############################
+# TERRAFORM (SHA Driven Idempotent)
+############################
+
+- name: Check terraform version
+  command: terraform version
+  register: terraform_check
+  changed_when: false
+  failed_when: false
+
+- name: Determine if terraform upgrade required
+  set_fact:
+    terraform_upgrade_required: >-
+      {{
+        (terraform_check.rc != 0)
+        or
+        (terraform_check.stdout is not search(devops_tools_terraform_version))
+      }}
+
+- name: Determine terraform architecture suffix
+  set_fact:
+    devops_tools_terraform_arch: "{{ 'arm64' if ansible_architecture in ['aarch64', 'arm64'] else 'amd64' }}"
+  when: terraform_upgrade_required
+
+- name: Download terraform zip if required
+  get_url:
+    url: "https://releases.hashicorp.com/terraform/{{ devops_tools_terraform_version }}/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_terraform_arch }}.zip"
+    dest: "/tmp/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_terraform_arch }}.zip"
+  when: terraform_upgrade_required
+
+- name: Download terraform SHA256SUMS if required
+  get_url:
+    url: "https://releases.hashicorp.com/terraform/{{ devops_tools_terraform_version }}/terraform_{{ devops_tools_terraform_version }}_SHA256SUMS"
+    dest: "/tmp/terraform_{{ devops_tools_terraform_version }}_SHA256SUMS"
+  when: terraform_upgrade_required
+
+- name: Verify terraform zip checksum from upstream manifest
+  shell: |
+    set -eu
+    grep " terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_terraform_arch }}.zip$" /tmp/terraform_{{ devops_tools_terraform_version }}_SHA256SUMS > /tmp/terraform_checksum_line
+    test -s /tmp/terraform_checksum_line
+    cd /tmp
+    sha256sum -c /tmp/terraform_checksum_line
+  changed_when: false
+  when: terraform_upgrade_required
+
+- name: Extract terraform binary
+  unarchive:
+    src: "/tmp/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_terraform_arch }}.zip"
+    dest: /usr/local/bin/
+    remote_src: true
+  when: terraform_upgrade_required
+
+
+############################
+# HELM (SHA Driven Idempotent)
+############################
+
+- name: Resolve helm checksum source
+  block:
+    - name: Use provided helm checksum
+      set_fact:
+        devops_tools_helm_sha256_effective: "{{ devops_tools_helm_sha256 }}"
+      when: devops_tools_helm_sha256 is not match('^REPLACE')
+
+    - name: Fetch helm checksum from upstream
+      uri:
+        url: "https://get.helm.sh/helm-v{{ devops_tools_helm_version }}-linux-amd64.tar.gz.sha256sum"
+        return_content: true
+      register: devops_tools_helm_sha256_remote
+      when: devops_tools_helm_sha256 is match('^REPLACE')
+
+    - name: Extract helm checksum value
+      set_fact:
+        devops_tools_helm_sha256_effective: "{{ (devops_tools_helm_sha256_remote.content | trim).split()[0] }}"
+      when: devops_tools_helm_sha256 is match('^REPLACE')
+
+- name: Check if helm exists
+  stat:
+    path: /usr/local/bin/helm
+  register: helm_stat
+
+- name: Get current helm sha256
+  command: sha256sum /usr/local/bin/helm
+  register: helm_current_sha
+  changed_when: false
+  failed_when: false
+  when: helm_stat.stat.exists
+
+- name: Determine if helm upgrade required
+  set_fact:
+    helm_upgrade_required: >-
+      {{
+        (not helm_stat.stat.exists)
+        or
+        (helm_current_sha.stdout.split()[0] != devops_tools_helm_sha256_effective)
+      }}
+
+- name: Download helm archive if required
+  get_url:
+    url: "https://get.helm.sh/helm-v{{ devops_tools_helm_version }}-linux-amd64.tar.gz"
+    dest: /tmp/helm.tar.gz
+  when: helm_upgrade_required
+
+- name: Verify helm checksum
+  shell: |
+    echo "{{ devops_tools_helm_sha256_effective }}  /tmp/helm.tar.gz" | sha256sum -c -
+  changed_when: false
+  when: helm_upgrade_required
+
+- name: Extract helm archive
+  unarchive:
+    src: /tmp/helm.tar.gz
+    dest: /tmp
+    remote_src: true
+  when: helm_upgrade_required
+
+- name: Install helm binary
+  copy:
+    src: /tmp/linux-amd64/helm
+    dest: /usr/local/bin/helm
+    mode: "0755"
+    remote_src: true
+  when: helm_upgrade_required
+
+
+############################
+# AWS CLI
+############################
+
+- name: Check AWS CLI
+  command: aws --version
+  register: aws_check
+  changed_when: false
+  failed_when: false
+
+- name: Download AWS CLI
+  get_url:
+    url: "{{ devops_tools_awscli_zip_url }}"
+    dest: /tmp/awscliv2.zip
+  when: aws_check.rc != 0
+
+- name: Install AWS CLI
+  shell: |
+    unzip -o /tmp/awscliv2.zip -d /tmp
+    /tmp/aws/install --update
+  when: aws_check.rc != 0

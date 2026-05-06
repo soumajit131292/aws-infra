@@ -1,0 +1,48 @@
+region = "us-east-1"
+
+github_org             = "CraveGit"
+github_app_id          = "2882744"
+github_installation_id = "110630261"
+
+# Paste full GitHub App private key PEM.
+github_private_key = <<-EOT
+-----BEGIN RSA PRIVATE KEY-----
+MIIEogIBAAKCAQEAxw8Z4e1/e47w+jzStsCCIh7d3GJJDmXUgLa0T+jTTrRRqSo/
+QBX+bF0w58wxwqzg32HrgwuWLrOkTOJ+VH98OtfDNz4FeNchBn76UPLHpOLpSQTT
+o3l9pT/mVaSUfuSyWo/MKV5KwOEvr8mf++m2YWBPQr7VFOIuY7RmrNgE6RkkGcPK
+IP4KQv3dM01arNMCMUUZkTV/cQGvCOVKe8373kg+65z7u9/XAf5sPqxbXCjQ6Vr2
+7Ddd5hQJAT3B4dtOQsjSy5K6Xa6Vnmy7JLtZlmD+nDSlUPbIcgRsxNCOrLuMlBMA
+pX0vXdt0RfX7Kcp4VSS5aW1CIQrpZZWXWVZ1nQIDAQABAoIBADpAFwjgIRAdMjNo
+HRlRmEM32SCmuk42SksoK/e+YCeF6Oeh70Rnqz42vxr1zBH12RBFbU+50kb0Vr4R
+AXrkm4v0m7HMunk0KvvlqIaLpRSBOlcdzHjoEnaLDnI9aR8A+Zg6wDnS1/k9bGD6
+lZB4QeCY+FjF00D7NywCHJGz3SwApUh1ibMOYATsuV/9QIxbvzdYdYeidKrnba3t
++Gxgo/SSpMxANT/LuXK3NTMdet9qG15Dux+RreKPo+TgY+DUXCRZvJj8e6vGw0J1
+va6V8jmq8MdWiEsImE29Nrgfpw9xGrS9ix8UctvT2HAueoJ6ixdBqLL5fVSuiNpA
+8h/cvYECgYEA5L7s3y5bgSlzny/pWlK9Xj/1vlv73UYQh2Li9RI4vorocpIr8MS+
+8+f5DYYp5FOdTtD3xTUUxzpDbsDnSweTyHBZ+hbvhwtu/cXeg4qR+hpEd1azBPAg
+2IQXU5KTgiexXTChd46Jz5GAgwfBML/yezIxTihk0WOBsgn2VbxmnY0CgYEA3sav
+e9pCYmXpM0xRtOJKPVtvmEo8bsHjE9/XDXxBwLagafwYM3cMeUtm8xmLis3Z7yzg
+VRk8oCwTJxlh9fEn359Bh1KeENoGXfoFQiSsBL749jHkn/T3h/4VnmXQBzgRw+Fz
+g1CRsJSaGsHCEDbI1JzeAiNzLATz9UWL0M5sDFECgYBXL1ozOoUP9s+l5eoITi71
+RGWS15Zo4TKdl5gvlnFgVquAN6xdyW+KoWjwuakv6Jq1lrpJRREVWmSnSwkdNNcj
+94aj5qgHDdmRCiDkfCVlcSuVXMtA35F1VOtbJCvq2NwmS8nPOtnV7nxP9N2yigaO
+5DOcuZKrqESfqmJkjTmDZQKBgBKDJDYAjx+qJFTU9L05SL4MiRt4n8j8Z6hRI4fF
+WZlwE6h7AG/WZrz1nRp6dvQT4xZS/llT/Yu53eWT4GYVoiCdFU7veJ8h3wGUMzep
+4HmMfRfIUZ1RN/ifDqDZCQ5whFlotLamzVSFJMEwdLXwN4QjfPdkhr+Tscoh+1pg
+rO3hAoGAS2f7jZ6LXLoK6H46+u9wJ2CICmurV20jEXBw3xVPAkI8OUzy15ahGBN5
+aGON2d+CJgJkbwPzF0LuKyOfytt796Yt1Cn1KyM6bQACVpJGTmwtFm19+OpAIM9x
+6DkOgcWjNBai4T8Y7vVn+KxZPvSrG8KCNCTa4hx8MglSgSOM9lI=
+-----END RSA PRIVATE KEY-----
+EOT
+
+runner_max_replicas = 3
+
+# Uncomment after mirroring images to ECR:
+arc_controller_image_repository     = "495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/actions-runner-controller"
+arc_controller_image_tag            = "v0.27.6-amd64-platform"
+runner_image_repository             = "495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/actions-runner"
+runner_image_tag                    = "latest-amd64-platform"
+kube_rbac_proxy_image_repository    = "495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/kube-rbac-proxy"
+kube_rbac_proxy_image_tag           = "v0.13.1-amd64-platform"
+cluster_autoscaler_image_repository = "495711089104.dkr.ecr.us-east-1.amazonaws.com/thirdparty/cluster-autoscaler"
+cluster_autoscaler_image_tag        = "v1.31.0-amd64-platform"
