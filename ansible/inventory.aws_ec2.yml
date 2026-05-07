@@ -18,7 +18,7 @@ hostnames:
 
 compose:
   ansible_connection: "'amazon.aws.aws_ssm'"
-  ansible_user: "'ssm-user'"
+  ansible_user: "'ubuntu' if (tags.env is defined and tags.env in ['prod', 'prod-dr']) else 'ssm-user'"
   ansible_remote_tmp: "'/tmp/.ansible/tmp'"
   ansible_aws_ssm_region: "placement.region"
   # Required by amazon.aws.aws_ssm to stage module payloads.

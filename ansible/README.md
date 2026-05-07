@@ -30,6 +30,7 @@ This playbook installs the following on Ubuntu:
 Host is set to `instance_id` and connection uses SSM.
 SSM transport needs an S3 bucket for temporary module transfer (configured in inventory).
 SSM region is selected per instance from EC2 metadata.
+Default inventory user is `ssm-user`; group overrides set `ubuntu` for `env_prod` and `env_prod_dr` to support sudo without password prompts.
 
 ## Setup
 

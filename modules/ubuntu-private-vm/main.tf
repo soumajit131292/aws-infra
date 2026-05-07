@@ -21,6 +21,11 @@ locals {
       usermod -aG sudo ssm-user || true
     fi
 
+    # Ensure SSM session user can run sudo non-interactively for Ansible become.
+    echo "ssm-user ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/ssm-agent-users
+    chmod 440 /etc/sudoers.d/ssm-agent-users
+    visudo -cf /etc/sudoers.d/ssm-agent-users || true
+
     mkdir -p /home/ssm-user
     chown ssm-user:ssm-user /home/ssm-user || true
     chsh -s /bin/bash ssm-user || true
