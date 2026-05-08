@@ -8,9 +8,9 @@ set -euo pipefail
 #   ./envs/dev/eks-add-on/velero/scripts/mirror-images-to-ecr.sh
 #
 # Optional overrides:
-#   AWS_REGION=us-east-1 ACCOUNT_ID=123456789012 SUFFIX=amd64-platform ./mirror-images-to-ecr.sh
+#   AWS_REGION=eu-central-1 ACCOUNT_ID=123456789012 SUFFIX=amd64-platform ./mirror-images-to-ecr.sh
 
-AWS_REGION="${AWS_REGION:-us-east-1}"
+AWS_REGION="${AWS_REGION:-eu-central-1}"
 ACCOUNT_ID="${ACCOUNT_ID:-495711089104}"
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 ECR_PREFIX="${ECR_PREFIX:-thirdparty}"

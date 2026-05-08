@@ -8,12 +8,12 @@ set -euo pipefail
 #   ./envs/dev/eks-add-on/external-secrets/scripts/mirror-eso-image-to-ecr.sh
 #
 # Optional overrides:
-#   AWS_REGION=us-east-1 ACCOUNT_ID=123456789012 ECR_PREFIX=thirdparty SUFFIX=amd64-platform ./mirror-eso-image-to-ecr.sh
+#   AWS_REGION=eu-west-1 ACCOUNT_ID=123456789012 ECR_PREFIX=thirdparty SUFFIX=amd64-platform ./mirror-eso-image-to-ecr.sh
 
 ############################################
 # CONFIG
 ############################################
-AWS_REGION="${AWS_REGION:-us-east-1}"
+AWS_REGION="${AWS_REGION:-eu-west-1}"
 ACCOUNT_ID="${ACCOUNT_ID:-495711089104}"
 ECR_REGISTRY="${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 ECR_PREFIX="${ECR_PREFIX:-thirdparty}"
