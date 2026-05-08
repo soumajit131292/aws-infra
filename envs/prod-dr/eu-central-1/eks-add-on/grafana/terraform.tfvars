@@ -4,7 +4,7 @@ namespace            = "monitoring"
 create_namespace     = false
 grafana_release_name = "grafana"
 
-grafana_chart_path = "../../../../modules/grafana/grafana"
+grafana_chart_path = "../../../../../modules/grafana/grafana"
 
 grafana_image_registry   = "495711089104.dkr.ecr.eu-central-1.amazonaws.com"
 grafana_image_repository = "thirdparty/grafana"

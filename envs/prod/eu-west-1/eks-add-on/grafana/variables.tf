@@ -25,7 +25,7 @@ variable "grafana_release_name" {
 variable "grafana_chart_path" {
   description = "Path to local Grafana chart."
   type        = string
-  default     = "../../../../modules/grafana/grafana"
+  default     = "../../../../../modules/grafana/grafana"
 }
 
 variable "grafana_image_registry" {

@@ -25,13 +25,13 @@ variable "node_exporter_release_name" {
 variable "kube_state_metrics_chart_path" {
   description = "Path to local kube-state-metrics chart."
   type        = string
-  default     = "../../../../modules/kube-state-metrics/kube-state-metrics"
+  default     = "../../../../../modules/kube-state-metrics/kube-state-metrics"
 }
 
 variable "node_exporter_chart_path" {
   description = "Path to local node-exporter chart."
   type        = string
-  default     = "../../../../modules/node-exporter/prometheus-node-exporter"
+  default     = "../../../../../modules/node-exporter/prometheus-node-exporter"
 }
 
 variable "kube_state_metrics_image_registry" {
