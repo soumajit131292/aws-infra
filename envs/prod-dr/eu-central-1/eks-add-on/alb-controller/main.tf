@@ -1,5 +1,5 @@
 module "alb_controller" {
-  source = "../../../../modules/eks-alb-controller"
+  source = "../../../../../modules/eks-alb-controller"
 
   cluster_name     = data.terraform_remote_state.eks.outputs.cluster_name
   region           = var.region

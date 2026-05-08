@@ -1,5 +1,5 @@
 module "argocd" {
-  source = "../../../../modules/eks-argocd"
+  source = "../../../../../modules/eks-argocd"
 
   release_name     = var.release_name
   namespace        = var.namespace

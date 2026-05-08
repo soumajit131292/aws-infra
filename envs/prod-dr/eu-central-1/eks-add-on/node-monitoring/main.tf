@@ -1,5 +1,5 @@
 module "node_monitoring" {
-  source = "../../../../modules/eks-node-monitoring"
+  source = "../../../../../modules/eks-node-monitoring"
 
   namespace                           = var.namespace
   kube_state_metrics_release_name     = var.kube_state_metrics_release_name

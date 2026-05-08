@@ -1,5 +1,5 @@
 module "grafana" {
-  source = "../../../../modules/eks-grafana"
+  source = "../../../../../modules/eks-grafana"
 
   namespace                   = var.namespace
   create_namespace            = var.create_namespace

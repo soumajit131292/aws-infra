@@ -69,7 +69,7 @@ resource "aws_iam_role_policy" "external_secrets_permissions" {
 }
 
 module "external_secrets" {
-  source = "../../../../modules/eks-eso"
+  source = "../../../../../modules/eks-eso"
 
   release_name                = var.release_name
   namespace                   = var.namespace

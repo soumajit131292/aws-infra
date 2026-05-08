@@ -262,7 +262,7 @@ resource "kubernetes_service_account" "velero" {
 }
 
 module "velero_helm" {
-  source = "../../../../modules/eks-velero"
+  source = "../../../../../modules/eks-velero"
 
   release_name             = var.helm_release_name
   namespace                = kubernetes_namespace.velero.metadata[0].name
