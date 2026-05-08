@@ -1,0 +1,124 @@
+name: Terraform EKS Add-ons Prod
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        type: choice
+        options:
+          - prod
+          - prod-dr
+      addon:
+        description: "EKS add-on"
+        required: true
+        type: choice
+        options:
+          - argocd
+          - external-secrets
+          - node-monitoring
+          - grafana
+          - velero
+          - alb-controller
+          - managed-prometheus
+      action:
+        description: "Terraform action"
+        required: true
+        type: choice
+        options:
+          - plan
+          - apply
+        default: plan
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform:
+    runs-on: self-hosted
+    env:
+      TF_IN_AUTOMATION: "true"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve Environment Paths
+        id: vars
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.environment }}" == "prod" ]]; then
+            echo "workdir=envs/prod/eu-west-1/eks-add-on/${{ inputs.addon }}" >> "$GITHUB_OUTPUT"
+            echo "aws_region=eu-west-1" >> "$GITHUB_OUTPUT"
+          else
+            echo "workdir=envs/prod-dr/eu-central-1/eks-add-on/${{ inputs.addon }}" >> "$GITHUB_OUTPUT"
+            echo "aws_region=eu-central-1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ steps.vars.outputs.aws_region }}
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Terraform Init
+        working-directory: ${{ steps.vars.outputs.workdir }}
+        run: terraform init -upgrade
+
+      - name: Terraform Validate
+        working-directory: ${{ steps.vars.outputs.workdir }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        if: ${{ inputs.action == 'plan' }}
+        working-directory: ${{ steps.vars.outputs.workdir }}
+        run: terraform plan
+
+      - name: Mirror Add-on Images to ECR
+        if: ${{ inputs.action == 'apply' }}
+        working-directory: ${{ steps.vars.outputs.workdir }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${{ inputs.addon }}" == "external-secrets" ]]; then
+            script="scripts/mirror-eso-image-to-ecr.sh"
+          else
+            script="scripts/mirror-images-to-ecr.sh"
+          fi
+
+          if [[ -f "${script}" ]]; then
+            chmod +x "${script}"
+            AWS_REGION="${{ steps.vars.outputs.aws_region }}" "${script}"
+          else
+            echo "No mirror script found for addon '${{ inputs.addon }}' at ${script}; skipping."
+          fi
+
+      - name: Terraform Apply (Non-ESO)
+        if: ${{ inputs.action == 'apply' && inputs.addon != 'external-secrets' }}
+        working-directory: ${{ steps.vars.outputs.workdir }}
+        run: terraform apply -auto-approve
+
+      - name: ESO Phase 1 (Helm Only)
+        if: ${{ inputs.action == 'apply' && inputs.addon == 'external-secrets' }}
+        working-directory: ${{ steps.vars.outputs.workdir }}
+        run: terraform apply -target=module.external_secrets.helm_release.external_secrets -auto-approve
+
+      - name: ESO Wait for CRD
+        if: ${{ inputs.action == 'apply' && inputs.addon == 'external-secrets' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          kubectl wait --for=condition=Established crd/clustersecretstores.external-secrets.io --timeout=180s
+
+      - name: ESO Phase 2 (Full Apply)
+        if: ${{ inputs.action == 'apply' && inputs.addon == 'external-secrets' }}
+        working-directory: ${{ steps.vars.outputs.workdir }}
+        run: terraform apply -auto-approve
