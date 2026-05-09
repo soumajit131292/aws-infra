@@ -4,8 +4,8 @@ set -euo pipefail
 
 # Mirror Grafana chart images to ECR with a custom suffix tag.
 # Usage:
-#   chmod +x ./envs/dev/eks-add-on/grafana/scripts/mirror-images-to-ecr.sh
-#   ./envs/dev/eks-add-on/grafana/scripts/mirror-images-to-ecr.sh
+#   chmod +x ./envs/prod-dr/eu-central-1/eks-add-on/grafana/scripts/mirror-images-to-ecr.sh
+#   ./envs/prod-dr/eu-central-1/eks-add-on/grafana/scripts/mirror-images-to-ecr.sh
 #
 # Optional overrides:
 #   AWS_REGION=eu-central-1 ACCOUNT_ID=123456789012 ECR_PREFIX=thirdparty SUFFIX=amd64-platform ./mirror-images-to-ecr.sh
@@ -66,7 +66,7 @@ done
 
 echo "=================================================="
 echo "All images pushed successfully"
-echo "Use these values in envs/dev/eks-add-on/grafana/terraform.tfvars:"
+echo "Use these values in envs/prod-dr/eu-central-1/eks-add-on/grafana/terraform.tfvars:"
 echo "grafana_image_registry     = \"${ECR_REGISTRY}\""
 echo "grafana_image_repository   = \"${ECR_PREFIX}/grafana\""
 echo "grafana_image_tag          = \"12.3.1-${SUFFIX}\""

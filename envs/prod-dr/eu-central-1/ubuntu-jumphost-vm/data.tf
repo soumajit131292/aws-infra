@@ -3,7 +3,7 @@ data "terraform_remote_state" "vpc" {
 
   config = {
     bucket = "crave-infra-terraform-state-bucket"
-    key    = "network/prod/eu-west-1/vpc/terraform.tfstate"
+    key    = "network/prod-dr/eu-central-1/vpc/terraform.tfstate"
     region = "us-east-1"
   }
 }

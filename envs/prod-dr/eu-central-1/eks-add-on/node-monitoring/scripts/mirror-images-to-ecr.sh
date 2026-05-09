@@ -4,8 +4,8 @@ set -euo pipefail
 
 # Mirror kube-state-metrics and node-exporter images to ECR with a custom suffix tag.
 # Usage:
-#   chmod +x ./envs/dev/eks-add-on/node-monitoring/scripts/mirror-images-to-ecr.sh
-#   ./envs/dev/eks-add-on/node-monitoring/scripts/mirror-images-to-ecr.sh
+#   chmod +x ./envs/prod-dr/eu-central-1/eks-add-on/node-monitoring/scripts/mirror-images-to-ecr.sh
+#   ./envs/prod-dr/eu-central-1/eks-add-on/node-monitoring/scripts/mirror-images-to-ecr.sh
 #
 # Optional overrides:
 #   AWS_REGION=eu-central-1 ACCOUNT_ID=123456789012 ECR_PREFIX=thirdparty SUFFIX=amd64-platform ./mirror-images-to-ecr.sh
@@ -66,7 +66,7 @@ done
 
 echo "=================================================="
 echo "All images pushed successfully"
-echo "Use these values in envs/dev/eks-add-on/node-monitoring/terraform.tfvars:"
+echo "Use these values in envs/prod-dr/eu-central-1/eks-add-on/node-monitoring/terraform.tfvars:"
 echo "kube_state_metrics_image_registry   = \"${ECR_REGISTRY}\""
 echo "kube_state_metrics_image_repository = \"${ECR_PREFIX}/kube-state-metrics\""
 echo "kube_state_metrics_image_tag        = \"v2.18.0-${SUFFIX}\""

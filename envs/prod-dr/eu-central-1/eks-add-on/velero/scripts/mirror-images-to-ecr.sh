@@ -4,8 +4,8 @@ set -euo pipefail
 
 # Mirror Velero images to ECR with a custom suffix tag.
 # Usage:
-#   chmod +x ./envs/dev/eks-add-on/velero/scripts/mirror-images-to-ecr.sh
-#   ./envs/dev/eks-add-on/velero/scripts/mirror-images-to-ecr.sh
+#   chmod +x ./envs/prod-dr/eu-central-1/eks-add-on/velero/scripts/mirror-images-to-ecr.sh
+#   ./envs/prod-dr/eu-central-1/eks-add-on/velero/scripts/mirror-images-to-ecr.sh
 #
 # Optional overrides:
 #   AWS_REGION=eu-central-1 ACCOUNT_ID=123456789012 SUFFIX=amd64-platform ./mirror-images-to-ecr.sh
@@ -67,7 +67,7 @@ done
 
 echo "=================================================="
 echo "All images pushed successfully"
-echo "Use these values in envs/dev/eks-add-on/velero/terraform.tfvars:"
+echo "Use these values in envs/prod-dr/eu-central-1/eks-add-on/velero/terraform.tfvars:"
 echo "velero_image_repository = \"${ECR_REGISTRY}/${ECR_PREFIX}/velero\""
 echo "velero_image_tag        = \"v1.14.1-${SUFFIX}\""
 echo "velero_plugin_image     = \"${ECR_REGISTRY}/${ECR_PREFIX}/velero-plugin-for-aws:v1.10.0-${SUFFIX}\""

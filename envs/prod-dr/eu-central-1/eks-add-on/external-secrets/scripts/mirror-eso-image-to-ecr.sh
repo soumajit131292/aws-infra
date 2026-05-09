@@ -4,8 +4,8 @@ set -euo pipefail
 
 # Mirror External Secrets image to ECR with a custom suffix tag.
 # Usage:
-#   chmod +x ./envs/dev/eks-add-on/external-secrets/scripts/mirror-eso-image-to-ecr.sh
-#   ./envs/dev/eks-add-on/external-secrets/scripts/mirror-eso-image-to-ecr.sh
+#   chmod +x ./envs/prod-dr/eu-central-1/eks-add-on/external-secrets/scripts/mirror-eso-image-to-ecr.sh
+#   ./envs/prod-dr/eu-central-1/eks-add-on/external-secrets/scripts/mirror-eso-image-to-ecr.sh
 #
 # Optional overrides:
 #   AWS_REGION=eu-central-1 ACCOUNT_ID=123456789012 ECR_PREFIX=thirdparty SUFFIX=amd64-platform ./mirror-eso-image-to-ecr.sh

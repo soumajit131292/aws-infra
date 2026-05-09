@@ -4,8 +4,8 @@ set -euo pipefail
 
 # Mirror third-party images to ECR with a custom suffix tag.
 # Usage:
-#   chmod +x ./envs/dev/eks-add-on/argocd/scripts/mirror-images-to-ecr.sh
-#   ./envs/dev/eks-add-on/argocd/scripts/mirror-images-to-ecr.sh
+#   chmod +x ./envs/prod-dr/eu-central-1/eks-add-on/argocd/scripts/mirror-images-to-ecr.sh
+#   ./envs/prod-dr/eu-central-1/eks-add-on/argocd/scripts/mirror-images-to-ecr.sh
 #
 # Optional overrides:
 #   AWS_REGION=eu-central-1 ACCOUNT_ID=123456789012 SUFFIX=amd64-platform ./mirror-images-to-ecr.sh

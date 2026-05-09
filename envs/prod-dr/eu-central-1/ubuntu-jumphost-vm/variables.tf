@@ -1,13 +1,13 @@
 variable "region" {
   description = "AWS region"
   type        = string
-  default     = "eu-west-1"
+  default     = "eu-central-1"
 }
 
 variable "name" {
   description = "VM name"
   type        = string
-  default     = "prod-ubuntu-jumphost"
+  default     = "prod-dr-ubuntu-jumphost"
 }
 
 variable "subnet_index" {
