@@ -13,7 +13,7 @@ data "terraform_remote_state" "managed_prometheus" {
 
   config = {
     bucket = "crave-infra-terraform-state-bucket"
-    key    = "eks-add-on/managed-prometheus/terraform.tfstate"
+    key    = "eks-add-on/prod-dr/eu-central-1/managed-prometheus/terraform.tfstate"
     region = "us-east-1"
   }
 }
