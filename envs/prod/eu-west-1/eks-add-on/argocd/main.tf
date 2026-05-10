@@ -13,7 +13,7 @@ module "argocd" {
   set = merge(
     var.set,
     {
-      "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/subnets" = join(",", data.aws_subnets.alb_public.ids)
+      "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/subnets" = join("\\,", data.aws_subnets.alb_public.ids)
     }
   )
 }
