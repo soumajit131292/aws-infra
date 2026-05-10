@@ -62,7 +62,7 @@ grafana_ingress_service_port = 80
 
 grafana_ingress_annotations = {
   "alb.ingress.kubernetes.io/backend-protocol" = "HTTP"
-  "alb.ingress.kubernetes.io/group.name"       = "accesshub-dev"
+  "alb.ingress.kubernetes.io/group.name"       = "accesshub-prod-dr"
   "alb.ingress.kubernetes.io/healthcheck-path" = "/api/health"
   "alb.ingress.kubernetes.io/inbound-cidrs"    = "0.0.0.0/0"
   "alb.ingress.kubernetes.io/listen-ports"     = "[{\"HTTP\":80}]"
