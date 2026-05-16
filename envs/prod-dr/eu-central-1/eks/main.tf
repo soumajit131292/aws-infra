@@ -36,6 +36,7 @@ module "eks" {
   enable_metrics_server_addon     = var.enable_metrics_server_addon
   metrics_server_addon_version    = var.metrics_server_addon_version
   enable_efs_backup               = true
+  create_efs_file_system          = false
   enable_spot_runner_node_group   = var.enable_spot_runner_node_group
   spot_runner_instance_types      = var.spot_runner_instance_types
   spot_runner_min_size            = var.spot_runner_min_size

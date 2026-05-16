@@ -220,6 +220,18 @@ variable "rds_proxy_max_connections_percent" {
   default     = 80
 }
 
+variable "is_secondary" {
+  description = "When true, this cluster joins an Aurora Global Database as a secondary (read-only)."
+  type        = bool
+  default     = false
+}
+
+variable "global_cluster_identifier" {
+  description = "Aurora Global Cluster identifier this cluster joins. Required when is_secondary = true."
+  type        = string
+  default     = null
+}
+
 variable "tags" {
   description = "Common tags"
   type        = map(string)

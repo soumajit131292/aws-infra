@@ -72,7 +72,11 @@ module "aurora_postgres" {
   rds_proxy_iam_auth                = var.rds_proxy_iam_auth
   enforce_rds_proxy_only            = var.enforce_rds_proxy_only
   rds_proxy_max_connections_percent = var.rds_proxy_max_connections_percent
-  tags                              = var.tags
+
+  is_secondary              = var.is_secondary
+  global_cluster_identifier = var.global_cluster_identifier
+
+  tags = var.tags
 
   depends_on = [
     aws_cloudwatch_log_group.aurora_postgresql

@@ -114,9 +114,10 @@ resource "aws_rds_cluster" "this" {
   cluster_identifier              = var.cluster_identifier
   engine                          = "aurora-postgresql"
   engine_version                  = var.engine_version
-  database_name                   = var.database_name
-  master_username                 = var.master_username
-  master_password                 = var.master_password
+  database_name                   = var.is_secondary ? null : var.database_name
+  master_username                 = var.is_secondary ? null : var.master_username
+  master_password                 = var.is_secondary ? null : var.master_password
+  global_cluster_identifier       = var.global_cluster_identifier
   db_subnet_group_name            = aws_db_subnet_group.this.name
   vpc_security_group_ids          = [aws_security_group.aurora.id]
   port                            = var.port
@@ -133,9 +134,20 @@ resource "aws_rds_cluster" "this" {
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
 
   lifecycle {
+    # AWS sets global_cluster_identifier on the PRIMARY cluster when the
+    # aws_rds_global_cluster adopts it (source_db_cluster_identifier flow).
+    # Ignoring this prevents Terraform from seeing drift and attempting a
+    # destructive recreation of the cluster.
+    ignore_changes = [global_cluster_identifier]
+
     precondition {
       condition     = var.skip_final_snapshot || length(var.final_snapshot_identifier) > 0
       error_message = "final_snapshot_identifier must be set when skip_final_snapshot is false"
+    }
+
+    precondition {
+      condition     = !var.is_secondary || var.global_cluster_identifier != null
+      error_message = "global_cluster_identifier is required when is_secondary = true."
     }
   }
 

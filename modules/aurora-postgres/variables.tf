@@ -27,6 +27,31 @@ variable "engine_version" {
   default     = "16.4"
 }
 
+variable "is_secondary" {
+  description = <<-EOT
+    Mark this cluster as a secondary member of an Aurora Global Database.
+    When true:
+      - master_username / master_password / database_name are NOT set on the cluster
+        (they are inherited from the global cluster's primary).
+      - global_cluster_identifier MUST be set.
+    Leave false (default) for standalone clusters and Global DB primaries.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "global_cluster_identifier" {
+  description = <<-EOT
+    If set, the cluster participates in this Aurora Global Database.
+    Required when is_secondary = true. Optional for the primary (the global
+    cluster's source_db_cluster_identifier handles primary adoption; this
+    field is also ignored via lifecycle.ignore_changes to prevent recreation
+    when AWS associates the cluster post-adoption).
+  EOT
+  type        = string
+  default     = null
+}
+
 variable "instance_class" {
   description = "Instance class for Aurora instances"
   type        = string

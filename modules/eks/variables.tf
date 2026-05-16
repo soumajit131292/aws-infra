@@ -47,6 +47,18 @@ variable "enable_efs_csi_driver" {
   default     = true
 }
 
+variable "create_efs_file_system" {
+  description = <<-EOT
+    When true (default), this module creates the EFS file system, its mount targets,
+    its security group, and the EFS backup policy alongside the CSI driver.
+    Set to false when this cluster consumes an external EFS (e.g., a cross-region
+    replicated EFS). The CSI driver addon and IRSA role are still created when
+    enable_efs_csi_driver=true.
+  EOT
+  type        = bool
+  default     = true
+}
+
 variable "efs_encrypted" {
   description = "Whether to enable encryption at rest for EFS."
   type        = bool
