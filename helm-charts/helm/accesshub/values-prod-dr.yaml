@@ -200,7 +200,10 @@ resources:
     memory: 300Mi
 persistentLogs:
   enabled: true
-  claimName: efs-claim
+  # Region-local logs EFS in eu-central-1. Independent from the data EFS
+  # (which is the read-only cross-region replica). Warm-standby pods write
+  # logs locally without depending on replication state.
+  claimName: efs-logs-claim
   mountPath: /app/log
   subPath: logs
   excludedServices:
@@ -234,6 +237,11 @@ accesshubFilesPersistence:
   subPath: accesshubfiles/common
   excludedServices:
   - antdui
+authFilesPersistence:
+  enabled: true
+  claimName: efs-claim
+  mountPath: /app/authfiles
+  subPath: authfiles/common
 tenantBootstrap:
   enabled: false
   trigger: ''

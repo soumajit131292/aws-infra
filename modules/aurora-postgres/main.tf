@@ -299,4 +299,15 @@ resource "aws_db_proxy_target" "cluster" {
   db_proxy_name         = aws_db_proxy.this[0].name
   target_group_name     = aws_db_proxy_default_target_group.this[0].name
   db_cluster_identifier = aws_rds_cluster.this.id
+
+  lifecycle {
+    # When the cluster is replaced (e.g., moving from standalone to
+    # Aurora Global Database secondary), the cluster identifier value
+    # is unchanged, so Terraform would not normally replan this target.
+    # But AWS auto-deregisters the target when its cluster is destroyed,
+    # leaving a stale Terraform state and a broken proxy until the next
+    # apply. replace_triggered_by forces destroy+create of the target
+    # in the same apply as the cluster, keeping proxy attachment in sync.
+    replace_triggered_by = [aws_rds_cluster.this]
+  }
 }

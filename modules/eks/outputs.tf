@@ -37,3 +37,13 @@ output "efs_security_group_id" {
   description = "Security group ID attached to EFS mount targets."
   value       = try(aws_security_group.efs[0].id, null)
 }
+
+output "efs_logs_file_system_id" {
+  description = "Region-local logs EFS file system ID. Null when create_efs_logs_file_system is false."
+  value       = try(aws_efs_file_system.logs[0].id, null)
+}
+
+output "efs_logs_security_group_id" {
+  description = "Security group ID attached to the logs EFS mount targets."
+  value       = try(aws_security_group.efs_logs[0].id, null)
+}

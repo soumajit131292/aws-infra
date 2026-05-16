@@ -83,6 +83,41 @@ variable "enable_efs_backup" {
   default     = false
 }
 
+variable "create_efs_logs_file_system" {
+  description = <<-EOT
+    When true, create a SEPARATE EFS file system dedicated to application logs.
+    This is independent of create_efs_file_system. The logs EFS is region-local
+    (never replicated cross-region) so warm-standby pods in a DR region can
+    still write logs even when the data EFS is a read-only replica.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "efs_logs_encrypted" {
+  description = "Encryption at rest for the logs EFS."
+  type        = bool
+  default     = true
+}
+
+variable "efs_logs_performance_mode" {
+  description = "Performance mode for the logs EFS."
+  type        = string
+  default     = "generalPurpose"
+}
+
+variable "efs_logs_throughput_mode" {
+  description = "Throughput mode for the logs EFS."
+  type        = string
+  default     = "elastic"
+}
+
+variable "enable_efs_logs_backup" {
+  description = "Enable AWS Backup policy on the logs EFS. Usually false (logs are ephemeral and also shipped to CloudWatch / SIEM)."
+  type        = bool
+  default     = false
+}
+
 variable "enable_spot_runner_node_group" {
   description = "Enable a dedicated SPOT EKS node group for GitHub runner workloads."
   type        = bool

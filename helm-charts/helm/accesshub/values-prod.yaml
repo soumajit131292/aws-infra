@@ -204,7 +204,10 @@ resources:
     memory: 300Mi
 persistentLogs:
   enabled: true
-  claimName: efs-claim
+  # Region-local logs EFS. Independent from the data EFS so warm-standby pods in
+  # the DR region can still write logs even when the data EFS is a read-only
+  # replica.
+  claimName: efs-logs-claim
   mountPath: /app/log
   subPath: logs
   excludedServices:

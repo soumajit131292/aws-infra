@@ -1,0 +1,19 @@
+# Region-local logs EFS StorageClass.
+# After applying envs/prod/eu-west-1/eks, fill fileSystemId from:
+#   terraform output -raw efs_logs_file_system_id
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-logs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: <FILL_FROM_TF_OUTPUT_efs_logs_file_system_id>
+  directoryPerms: "700"
+  gidRangeStart: "1000"
+  gidRangeEnd: "2000"
+  basePath: "/dynamic-provisioning"
+mountOptions:
+  - tls
+reclaimPolicy: Retain
+volumeBindingMode: Immediate
