@@ -1,0 +1,70 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: accesshub-dev-tenant-bootstrap
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/CraveGit/CRAVE_INT_ACCESSHUB_cicd.git
+    targetRevision: main
+    path: helm/accesshub
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-tenant-dev.yaml
+      parameters:
+        # Disable all other chart components to avoid overlap with core app
+        - name: externalSecret.enabled
+          value: "false"
+        - name: global.database.configMap.create
+          value: "false"
+        - name: dbMigration.enabled
+          value: "false"
+        - name: ingress.enabled
+          value: "false"
+        - name: healthAggregator.enabled
+          value: "false"
+        - name: podDisruptionBudget.enabled
+          value: "false"
+        - name: autoscaling.enabled
+          value: "false"
+
+        # Disable service deployments/services in this app
+        - name: services.antdui.enabled
+          value: "false"
+        - name: services.adminsvc.enabled
+          value: "false"
+        - name: services.apponbsvc.enabled
+          value: "false"
+        - name: services.pgmodsvc.enabled
+          value: "false"
+        - name: services.loginmodsvc.enabled
+          value: "false"
+        - name: services.snowmodsvc.enabled
+          value: "false"
+        - name: services.gatewaysvc.enabled
+          value: "false"
+        - name: services.ahschedular.enabled
+          value: "false"
+        - name: services.scimpersist.enabled
+          value: "false"
+        - name: services.grcsoapws.enabled
+          value: "false"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: accesshub
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - RespectIgnoreDifferences=true

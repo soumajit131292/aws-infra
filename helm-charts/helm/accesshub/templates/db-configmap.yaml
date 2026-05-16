@@ -1,0 +1,11 @@
+{{- if .Values.global.database.configMap.create }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Values.global.database.configMap.name }}
+  labels:
+    {{- include "accesshub.labels" . | nindent 4 }}
+data:
+  {{ .Values.global.database.existingConfigMapHostKey }}: {{ .Values.global.database.host | quote }}
+  {{ .Values.global.database.existingConfigMapNameKey }}: {{ .Values.global.database.name | quote }}
+{{- end }}

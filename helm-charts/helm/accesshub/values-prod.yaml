@@ -1,0 +1,275 @@
+global:
+  imageRegistry: 495711089104.dkr.ecr.eu-west-1.amazonaws.com
+  runtime:
+    existingSecret: accesshub-runtime
+    baseUrl: ''
+    tenantId: ''
+    nativeSuperadminId: ''
+    nativeSuperadminPassword: ''
+    grcApiAccessUser: ''
+    grcApiAccessPassword: ''
+  database:
+    configMap:
+      create: true
+      name: accesshub-db-config
+    host: db-primary.accesshub.internal
+    name: accesshub
+externalSecret:
+  data:
+    username:
+      remoteRef:
+        key: prod/aurora/app-credentials
+        property: username
+    password:
+      remoteRef:
+        key: prod/aurora/app-credentials
+        property: password
+services:
+  antdui:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/antdui
+    digest: sha256:01e3e91171a1b7cb7e3b5ed77c451bd840fe460f0d9d0a8f42983a302b5a2e94
+    port: 80
+    targetPort: 80
+  adminsvc:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/adminsvc
+    digest: sha256:b73a4c8d41573a13450d982afe7f95de621013bc98175a2675ce6948490c12ae
+    port: 8107
+    targetPort: 8107
+  apponbsvc:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/apponbsvc
+    digest: sha256:a4bacc0b575ac35dd9db721c3e85216e00e0c67e19a036b8c8e5f0e13a941236
+    port: 8108
+    targetPort: 8108
+  pgmodsvc:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/pgmodsvc
+    digest: sha256:c55861d7a0bfe4daeb08261804fef6501c4575b4336ffdb8ac4f9867c6992fab
+    port: 8095
+    targetPort: 8095
+  loginmodsvc:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/loginmodsvc
+    digest: sha256:d94ed6990cb6e6dcc09d25f70b08a73a68c161185d55af36216cbd49150ad4d1
+    port: 8098
+    targetPort: 8098
+  snowmodsvc:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/snowmodsvc
+    digest: sha256:5e0a961e45887cf60b042cf196bf1a58e0b67ff1ecbfd83f3c01ae18ee399ee3
+    port: 8110
+    targetPort: 8110
+  gatewaysvc:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/gatewaysvc
+    digest: sha256:70de89876e6f98905ac92aaf411dc9ba346d2695b5f2687cf3dde40739897cd9
+    port: 8082
+    targetPort: 8082
+  ahschedular:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/ahschedular
+    digest: sha256:445628744a4a0467be7fda8b4dc73e149ee803f4582929f25c75f6c6902a7b30
+    port: 8070
+    targetPort: 8070
+  scimpersist:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/scimpersist
+    digest: sha256:9dc99afc4584cc7e86faeb5424e2b8fa9242e10034d99ab0a11574968bffe7b9
+    port: 8091
+    targetPort: 8091
+  grcsoapws:
+    enabled: true
+    replicaCount: 3
+    repository: accesshub/grcsoapws
+    digest: sha256:6d83d94aeaa2624501df407094bd32c0dfe8c96828c9b6e82663263d83973c26
+    port: 8090
+    targetPort: 8090
+ingress:
+  enabled: true
+  className: alb
+  host: ''
+  frontendHealthCheckPath: /accesshub/
+  backendHealthCheckPath: /actuator/health
+  backendHealthCheckPaths:
+    ahschedular: /jobschedular/health
+    scimpersist: /scim-application/health
+    adminsvc: /privilegedrole/health
+    apponbsvc: /itasset/health
+    loginmodsvc: /RequestJWTToken/health
+    gatewaysvc: /scim/health
+    pgmodsvc: /pgmodule/health
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: accesshub-prod-alb
+    alb.ingress.kubernetes.io/load-balancer-attributes: access_logs.s3.enabled=true,access_logs.s3.bucket=prod-accesshub-alb-access-logs-495711089104-eu-west-1,access_logs.s3.prefix=alb/accesshub,deletion_protection.enabled=true
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:eu-west-1:495711089104:regional/webacl/prod-accesshub-waf/5bcf94b5-9b96-4612-aae7-a5ec9f0bbf82
+    alb.ingress.kubernetes.io/group.name: accesshub-prod
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/inbound-cidrs: 0.0.0.0/0
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/success-codes: 200-399
+  paths:
+  - path: /accesshub
+    pathType: Prefix
+    service: antdui
+  - path: /ahscheduler
+    pathType: Prefix
+    service: antdui
+  - path: /scim
+    pathType: Prefix
+    service: gatewaysvc
+  - path: /pgmodule
+    pathType: Prefix
+    service: pgmodsvc
+  - path: /scimattribute
+    pathType: Prefix
+    service: pgmodsvc
+  - path: /RequestJWTToken
+    pathType: Prefix
+    service: loginmodsvc
+  - path: /authcontroller
+    pathType: Prefix
+    service: loginmodsvc
+  - path: /login
+    pathType: Prefix
+    service: loginmodsvc
+  - path: /itasset
+    pathType: Prefix
+    service: apponbsvc
+  - path: /uiprivilege
+    pathType: Prefix
+    service: adminsvc
+  - path: /privilegedrole
+    pathType: Prefix
+    service: adminsvc
+  - path: /appRegMongoService
+    pathType: Prefix
+    service: adminsvc
+  - path: /nativeusers
+    pathType: Prefix
+    service: adminsvc
+  - path: /registerivapp
+    pathType: Prefix
+    service: adminsvc
+  - path: /registerscimapp
+    pathType: Prefix
+    service: adminsvc
+  - path: /registeredapp
+    pathType: Prefix
+    service: adminsvc
+  - path: /schemamapper
+    pathType: Prefix
+    service: adminsvc
+  - path: /servicenow
+    pathType: Prefix
+    service: snowmodsvc
+  - path: /fulfillment
+    pathType: Prefix
+    service: snowmodsvc
+  - path: /soap-api
+    pathType: Prefix
+    service: grcsoapws
+  - path: /grcspml
+    pathType: Prefix
+    service: grcsoapws
+  - path: /scim-application
+    pathType: Prefix
+    service: scimpersist
+  - path: /jobschedular
+    pathType: Prefix
+    service: ahschedular
+probes:
+  enabled: false
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+resources:
+  limits:
+    cpu: 100m
+    memory: 3000Mi
+  requests:
+    cpu: 100m
+    memory: 300Mi
+persistentLogs:
+  enabled: true
+  claimName: efs-claim
+  mountPath: /app/log
+  subPath: logs
+  excludedServices:
+  - snowmodsvc
+  - antdui
+loginAuthSourcePersistence:
+  enabled: true
+  claimName: efs-claim
+  service: loginmodsvc
+  mountPath: /app/loginModule/registeredAuthenticationSource
+  subPath: loginmodsvc/registeredAuthenticationSource
+targetAppResourcesPersistence:
+  enabled: true
+  claimName: efs-claim
+  mountPath: /app/TargetAppResources/resources/ApplicationRegistration
+  subPath: targetappresources
+  excludedServices:
+  - antdui
+schemaAssetsPersistence:
+  enabled: true
+  claimName: efs-claim
+  schemaMapperMountPath: /app/schemaMapper
+  schemaDefinitionMountPath: /app/SchemaDefinition
+  subPath: schemaassets/common
+  excludedServices:
+  - antdui
+accesshubFilesPersistence:
+  enabled: true
+  claimName: efs-claim
+  mountPath: /app/Accesshub_Files
+  subPath: accesshubfiles/common
+  excludedServices:
+  - antdui
+authFilesPersistence:
+  enabled: true
+  claimName: efs-claim
+  mountPath: /app/authfiles
+  subPath: authfiles/common
+tenantBootstrap:
+  enabled: false
+  trigger: ''
+  ttlSecondsAfterFinished: null
+  image:
+    repository: ''
+    digest: ''
+dbMigration:
+  enabled: false
+  image:
+    repository: accesshub/db-migration
+    digest: sha256:707942b985c4c00cce109a45b1b118dc02a0103550db02d38bd2c4719b823301
+healthAggregator:
+  enabled: true
+  replicaCount: 3
+  image:
+    repository: accesshub/health-aggregator
+    digest: sha256:1519d91e84e442f3059e85152c18f1d876dee22e1293b69bdd1b84ace1728932
+  resources:
+    requests:
+      cpu: 30m
+      memory: 100Mi
+    limits:
+      cpu: 30m
+      memory: 100Mi
+  ingress:
+    enabled: true
+    path: /region-healthz
+    pathType: Prefix
+    healthCheckPath: /healthz

@@ -1,0 +1,13 @@
+ARG BASE_REGISTRY=495711089104.dkr.ecr.us-east-1.amazonaws.com
+FROM ${BASE_REGISTRY}/thirdparty/flyway:10.17.1-amd64-platform
+
+# Single source SQL from app repo checkout (workflow context: ./src).
+# We package it as a repeatable migration so content changes are re-applied.
+COPY AccessHubGateway/app/Accesshub_Files/Install_Scripts/Install_Tables.sql /tmp/Install_Tables.sql
+RUN mkdir -p /flyway/sql \
+ && perl -0pe '\
+    s/^(\s*CREATE\s+TABLE\s+)(?!IF\s+NOT\s+EXISTS\s+)/${1}IF NOT EXISTS /igms; \
+    s/^(\s*CREATE\s+SEQUENCE\s+)(?!IF\s+NOT\s+EXISTS\s+)/${1}IF NOT EXISTS /igms; \
+    s/^(\s*CREATE\s+(?:UNIQUE\s+)?INDEX\s+)(?!IF\s+NOT\s+EXISTS\s+)/${1}IF NOT EXISTS /igms; \
+    s/(\bALTER\s+TABLE\b.*?\bADD\s+COLUMN\s+)(?!IF\s+NOT\s+EXISTS\b)/${1}IF NOT EXISTS /igms; \
+  ' /tmp/Install_Tables.sql > /flyway/sql/R__install_tables.sql

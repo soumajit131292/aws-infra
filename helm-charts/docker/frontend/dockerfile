@@ -1,0 +1,82 @@
+# # syntax=docker/dockerfile:1.7
+# ##############################
+# # 1. BUILD STAGE (Node 20 + Yarn 4)
+# ##############################
+# FROM node:20-alpine AS builder
+
+# WORKDIR /app
+
+# # Enable Corepack for Yarn 4
+# RUN corepack enable
+
+# COPY .yarnrc.yml package.json yarn.lock ./
+
+# # Install Yarn 4 as defined in packageManager
+# RUN corepack install
+
+# # Install dependencies
+# RUN yarn install --immutable
+
+# COPY . .
+
+# ARG SCHEDULER_USERNAME=""
+# ARG PUBLIC_PATH=""
+
+# RUN --mount=type=secret,id=scheduler_password \
+#     SCHEDULER_PASSWORD="$(cat /run/secrets/scheduler_password)" \
+#     SCHEDULER_USERNAME="${SCHEDULER_USERNAME}" \
+#     PUBLIC_PATH="${PUBLIC_PATH}" \
+#     PUBLIC_URL="${PUBLIC_PATH}" \
+#     yarn build
+
+# RUN if [ -d build ]; then cp -r build /out; \
+#     elif [ -d dist ]; then cp -r dist /out; \
+#     else echo "No frontend output directory found (expected build/ or dist/)"; exit 1; fi
+
+
+# ##############################
+# # 2. RUNTIME STAGE (serve)
+# ##############################
+# FROM node:20-alpine
+
+# # Install ONLY the serve package (tiny)
+# RUN corepack enable && yarn global add serve
+
+# # Copy ONLY the compiled static output from builder stage
+# COPY --from=builder /out ./build
+
+# EXPOSE 80
+# CMD ["serve", "-s", "build", "-l", "80"]
+
+##############################
+# 1. BUILD STAGE (Node 20 + Yarn 4)
+##############################
+ARG BASE_REGISTRY=495711089104.dkr.ecr.us-east-1.amazonaws.com
+FROM ${BASE_REGISTRY}/thirdparty/node:20-alpine-amd64-platform AS build
+
+WORKDIR /app
+
+# Enable Corepack for Yarn 4
+RUN corepack enable
+
+COPY package.json yarn.lock ./
+
+# Install Yarn 4 as defined in packageManager
+RUN corepack install
+
+# Install dependencies
+COPY . .
+RUN yarn install
+
+RUN yarn build
+
+
+##############################
+# 2. RUNTIME STAGE (Nginx)
+##############################
+FROM ${BASE_REGISTRY}/thirdparty/nginx:alpine-amd64-platform
+
+COPY --from=build /app/dist /var/www/accesshub
+COPY nginx.conf /etc/nginx/nginx.conf
+
+CMD ["nginx", "-g", "daemon off;"]

@@ -1,0 +1,48 @@
+{{- if .Values.ingress.enabled }}
+{{- $hasFrontend := false -}}
+{{- range .Values.ingress.paths }}
+{{- $svc := index $.Values.services .service -}}
+{{- if and (eq .service "antdui") $svc (eq (include "accesshub.deployService" (dict "enabled" $svc.enabled "digest" $svc.digest)) "true") -}}
+{{- $hasFrontend = true -}}
+{{- end -}}
+{{- end }}
+{{- if $hasFrontend }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "accesshub.fullname" . }}-frontend
+  labels:
+    {{- include "accesshub.labels" . | nindent 4 }}
+  {{- if or .Values.ingress.annotations .Values.ingress.frontendHealthCheckPath }}
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- if .Values.ingress.frontendHealthCheckPath }}
+    alb.ingress.kubernetes.io/healthcheck-path: {{ .Values.ingress.frontendHealthCheckPath | quote }}
+    {{- end }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  rules:
+    - {{- if .Values.ingress.host }}
+      host: {{ .Values.ingress.host | quote }}
+      {{- end }}
+      http:
+        paths:
+          {{- range .Values.ingress.paths }}
+          {{- $svc := index $.Values.services .service }}
+          {{- if and (eq .service "antdui") $svc (eq (include "accesshub.deployService" (dict "enabled" $svc.enabled "digest" $svc.digest)) "true") }}
+          - path: {{ .path }}
+            pathType: {{ .pathType | default "Prefix" }}
+            backend:
+              service:
+                name: {{ include "accesshub.fullname" $ }}-{{ .service }}
+                port:
+                  number: {{ $svc.port }}
+          {{- end }}
+          {{- end }}
+{{- end }}
+{{- end }}

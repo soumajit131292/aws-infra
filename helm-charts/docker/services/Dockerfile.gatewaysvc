@@ -1,0 +1,85 @@
+# FROM maven:3.9.9-eclipse-temurin-11 AS builder
+# WORKDIR /build
+# COPY . .
+# RUN mvn -f src/AccessHubGateway/SCIM_Gateway/Kapstone-SCIM/pom.xml -pl modules/kp-impl -am -DskipTests clean package
+
+# FROM eclipse-temurin:11-jre
+# WORKDIR /app
+# COPY src/AccessHubGateway/app/TargetAppResources /app/TargetAppResources
+# COPY src/AccessHubGateway/app/Accesshub_Files/Install_Scripts /app/Accesshub_Files/Install_Scripts
+# RUN mkdir -p /app/kpscim
+# COPY --from=builder /build/src/AccessHubGateway/SCIM_Gateway/Kapstone-SCIM/modules/kp-impl/target/ /tmp/kpimpl-target/
+# RUN set -e; \
+#   if [ -f /tmp/kpimpl-target/org.kp.impl-3.1.3-SNAPSHOT.jar ]; then \
+#     cp /tmp/kpimpl-target/org.kp.impl-3.1.3-SNAPSHOT.jar /app/kpscim/org.kp.impl-3.1.3-SNAPSHOT.jar; \
+#   elif [ -f /tmp/kpimpl-target/org.kp.impl-3.1.3-SNAPSHOT-jar-with-dependencies.jar ]; then \
+#     cp /tmp/kpimpl-target/org.kp.impl-3.1.3-SNAPSHOT-jar-with-dependencies.jar /app/kpscim/org.kp.impl-3.1.3-SNAPSHOT.jar; \
+#   else \
+#     echo "SCIM gateway jar not found in kp-impl target output"; \
+#     ls -la /tmp/kpimpl-target; \
+#     exit 1; \
+#   fi; \
+#   rm -rf /tmp/kpimpl-target
+# COPY deploy/docker/scripts/run-db-service.sh /usr/local/bin/run-db-service.sh
+# COPY deploy/docker/scripts/run-config-init.sh /usr/local/bin/run-config-init.sh
+# RUN chmod +x /usr/local/bin/run-db-service.sh /usr/local/bin/run-config-init.sh
+# ENV DATABASE=POSTGRES
+# ENV SERVER_PORT=8082
+# ENV JAR_PATH=/app/kpscim/org.kp.impl-3.1.3-SNAPSHOT.jar
+# EXPOSE 8082
+# ENTRYPOINT ["/bin/sh", "/usr/local/bin/run-db-service.sh"]
+
+ARG BASE_REGISTRY=495711089104.dkr.ecr.us-east-1.amazonaws.com
+FROM ${BASE_REGISTRY}/thirdparty/maven:3.9.9-eclipse-temurin-11-amd64-platform AS builder
+WORKDIR /build
+COPY . .
+RUN mvn -f src/AccessHubGateway/SCIM_Gateway/Kapstone-SCIM/pom.xml -pl modules/kp-impl -am -DskipTests clean package
+RUN set -e; \
+  src_root=""; \
+  if [ -d /build/src/AccessHubGateway/app/Accesshub_Files ]; then \
+    src_root="/build/src/AccessHubGateway/app/Accesshub_Files"; \
+  elif [ -d /build/AccessHubGateway/app/Accesshub_Files ]; then \
+    src_root="/build/AccessHubGateway/app/Accesshub_Files"; \
+  else \
+    echo "Accesshub_Files source folder not found"; \
+    exit 1; \
+  fi; \
+  mkdir -p /build/accesshub_files_bundle; \
+  for d in Install_Scripts Accesshub_Job_Files workday_report; do \
+    if [ ! -d "${src_root}/${d}" ]; then \
+      echo "Missing required folder: ${src_root}/${d}"; \
+      exit 1; \
+    fi; \
+    cp -a "${src_root}/${d}" "/build/accesshub_files_bundle/${d}"; \
+  done
+
+FROM ${BASE_REGISTRY}/thirdparty/eclipse-temurin:11-jre-amd64-platform
+WORKDIR /app
+COPY src/AccessHubGateway/app/TargetAppResources /app/TargetAppResources
+COPY src/AccessHubGateway/app/authfiles /app/authfiles
+COPY --from=builder /build/accesshub_files_bundle /app/Accesshub_Files
+COPY src/AccessHubGateway/app/schemaMapper /app/schemaMapper
+COPY src/AccessHubGateway/app/SchemaDefinition /app/SchemaDefinition
+RUN mkdir -p /app/kpscim /app/log/kpscim
+COPY --from=builder /build/src/AccessHubGateway/SCIM_Gateway/Kapstone-SCIM/modules/kp-impl/target/ /tmp/kpimpl-target/
+RUN set -e; \
+  if [ -f /tmp/kpimpl-target/org.kp.impl-3.1.3-SNAPSHOT.jar ]; then \
+    cp /tmp/kpimpl-target/org.kp.impl-3.1.3-SNAPSHOT.jar /app/kpscim/org.kp.impl-3.1.3-SNAPSHOT.jar; \
+  elif [ -f /tmp/kpimpl-target/org.kp.impl-3.1.3-SNAPSHOT-jar-with-dependencies.jar ]; then \
+    cp /tmp/kpimpl-target/org.kp.impl-3.1.3-SNAPSHOT-jar-with-dependencies.jar /app/kpscim/org.kp.impl-3.1.3-SNAPSHOT.jar; \
+  else \
+    echo "SCIM gateway jar not found in kp-impl target output"; \
+    ls -la /tmp/kpimpl-target; \
+    exit 1; \
+  fi; \
+  rm -rf /tmp/kpimpl-target
+COPY deploy/docker/scripts/run-db-service.sh /usr/local/bin/run-db-service.sh
+COPY deploy/docker/scripts/run-config-init.sh /usr/local/bin/run-config-init.sh
+RUN chmod +x /usr/local/bin/run-db-service.sh /usr/local/bin/run-config-init.sh
+ENV DATABASE=POSTGRES
+ENV SERVER_PORT=8082
+ENV JAR_PATH=/app/kpscim/org.kp.impl-3.1.3-SNAPSHOT.jar
+ENV LOG_PATH=/app/log/kpscim
+ENV LOG_FILENAME=kpscim
+EXPOSE 8082
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/run-db-service.sh"]

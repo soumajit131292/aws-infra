@@ -1,0 +1,215 @@
+global:
+  imageRegistry: ''
+  imagePullSecrets: []
+  runtime:
+    existingSecret: ''
+    existingSecretBaseUrlKey: baseUrl
+    existingSecretTenantIdKey: tenantId
+    existingSecretNativeSuperadminIdKey: nativeSuperadminId
+    existingSecretNativeSuperadminPasswordKey: nativeSuperadminPassword
+    existingSecretGrcApiAccessUserKey: grcApiAccessUser
+    existingSecretGrcApiAccessPasswordKey: grcApiAccessPassword
+    baseUrl: ''
+    tenantId: ''
+    nativeSuperadminId: ''
+    nativeSuperadminPassword: ''
+    grcApiAccessUser: ''
+    grcApiAccessPassword: ''
+  database:
+    mode: POSTGRES
+    existingSecret: accesshub-db
+    existingSecretUserKey: username
+    existingSecretPasswordKey: password
+    existingConfigMap: ''
+    existingConfigMapHostKey: host
+    existingConfigMapNameKey: name
+    configMap:
+      create: false
+      name: accesshub-db-config
+    host: ''
+    port: 5432
+    name: ''
+    jdbcOptions: ''
+externalSecret:
+  enabled: true
+  refreshInterval: 1h
+  secretStoreRef:
+    create: false
+    kind: ClusterSecretStore
+    name: aws-secretsmanager
+  target:
+    name: accesshub-db
+    creationPolicy: Owner
+tenantBootstrap:
+  enabled: false
+  trigger: ''
+  backoffLimit: 2
+  ttlSecondsAfterFinished: null
+  image:
+    repository: ''
+    digest: ''
+dbMigration:
+  enabled: false
+  backoffLimit: 2
+  activeDeadlineSeconds: 1800
+  image:
+    repository: ''
+    digest: ''
+  imagePullPolicy: IfNotPresent
+  flyway:
+    connectRetries: 60
+    locations: filesystem:/flyway/sql
+    baselineOnMigrate: true
+    baselineVersion: "0"
+    table: accesshub_flyway_schema_history
+healthAggregator:
+  enabled: false
+  upstreamReleaseName: ''
+  replicaCount: 2
+  containerPort: 8080
+  probePath: /healthz
+  image:
+    repository: accesshub/health-aggregator
+    digest: ''
+  service:
+    port: 80
+    targetPort: 8080
+  ingress:
+    enabled: false
+    path: /region-healthz
+    pathType: Prefix
+    healthCheckPath: /healthz
+  checkTimeoutSeconds: "2.5"
+  maxParallelChecks: "16"
+  serviceNames:
+    - ahschedular
+    - adminsvc
+    - apponbsvc
+    - loginmodsvc
+    - gatewaysvc
+    - pgmodsvc
+    - scimpersist
+  criticalServices:
+    - ahschedular
+    - adminsvc
+    - apponbsvc
+    - loginmodsvc
+    - gatewaysvc
+    - pgmodsvc
+    - scimpersist
+  checkPaths:
+    ahschedular: /jobschedular/health
+    adminsvc: /privilegedrole/health
+    apponbsvc: /itasset/health
+    loginmodsvc: /RequestJWTToken/health
+    gatewaysvc: /scim/health
+    pgmodsvc: /pgmodule/health
+    scimpersist: /scim-application/health
+  probes:
+    initialDelaySeconds: 5
+    periodSeconds: 15
+    timeoutSeconds: 5
+    failureThreshold: 3
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      cpu: 100m
+      memory: 256Mi
+nameOverride: ''
+fullnameOverride: ''
+service:
+  type: ClusterIP
+resources:
+  requests:
+    cpu: 30m
+    memory: 200Mi
+  limits:
+    cpu: 30m
+    memory: 200Mi
+probes:
+  enabled: true
+  path: /actuator/health
+  initialDelaySeconds: 40
+  periodSeconds: 15
+  timeoutSeconds: 5
+  failureThreshold: 6
+nodeSelector: {}
+tolerations: []
+affinity: {}
+podAnnotations: {}
+podLabels: {}
+podDisruptionBudget:
+  enabled: false
+  minAvailable: 1
+resources:
+  limits:
+    cpu: 40m
+    memory: 100Mi
+  requests:
+    cpu: 40m
+    memory: 100Mi
+persistentLogs:
+  enabled: false
+  claimName: ""
+  mountPath: /app/log
+  subPath: ""
+  # Services that should not mount the shared RWX log volume.
+  excludedServices:
+    - snowmodsvc
+    - antdui
+loginAuthSourcePersistence:
+  enabled: false
+  claimName: ""
+  service: loginmodsvc
+  mountPath: /app/loginModule/registeredAuthenticationSource
+  subPath: loginmodsvc/registeredAuthenticationSource
+targetAppResourcesPersistence:
+  enabled: false
+  claimName: ""
+  mountPath: /app/TargetAppResources
+  subPath: targetappresources
+  excludedServices:
+    - antdui
+schemaAssetsPersistence:
+  enabled: false
+  claimName: ""
+  schemaMapperMountPath: /app/schemaMapper
+  schemaDefinitionMountPath: /app/SchemaDefinition
+  subPath: schemaassets/common
+  excludedServices:
+    - antdui
+accesshubFilesPersistence:
+  enabled: false
+  claimName: ""
+  mountPath: /app/Accesshub_Files
+  subPath: accesshubfiles/common
+  excludedServices:
+    - antdui
+ingress:
+  enabled: false
+  frontendHealthCheckPath: /
+  backendHealthCheckPath: /actuator/health
+  backendHealthCheckPaths: {}
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-attributes: deletion_protection.enabled=true
+services:
+  pgmodsvc:
+    repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/accesshub/pgmodsvc
+    digest: sha256:ac27a9dc1a79c562720131db802270d9a88104db580b1c965a28d1da5816db61
+  snowmodsvc:
+    repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/accesshub/snowmodsvc
+    digest: sha256:904a46b2edcb0ff7f1ffd90dfec86e6f24f5582e408417b520d82d60b8242c70
+  loginmodsvc:
+    repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/accesshub/loginmodsvc
+    digest: sha256:91b3680702f20fccddb191ee9ddd401c6e1854d2d8756b2f4824957f9c838349
+  adminsvc:
+    repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/accesshub/adminsvc
+    digest: sha256:7f9a97736c1ad2250edb7a1ac53267219c180ae35983ebf30884fdcacef9a77e
+  apponbsvc:
+    repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/accesshub/apponbsvc
+    digest: sha256:7d69192ea8dd0f9f4b3041df228cea39464cf21b7a3c150e809c62a3d76d5c72
+  antdui:
+    repository: 495711089104.dkr.ecr.us-east-1.amazonaws.com/accesshub/antdui
+    digest: sha256:cfe77926a4a7f2e30b18e561ee37352537ece3303d7657acd27a25cade9828c6

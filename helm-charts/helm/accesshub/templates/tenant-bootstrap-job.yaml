@@ -1,0 +1,97 @@
+{{- $gw := (index .Values.services "gatewaysvc") | default dict -}}
+{{- $tbImage := .Values.tenantBootstrap.image | default dict -}}
+{{- $tbRepo := default $gw.repository $tbImage.repository -}}
+{{- $tbDigest := default $gw.digest $tbImage.digest -}}
+{{- $tbDigestValid := eq (trim (include "accesshub.validDigest" (dict "digest" $tbDigest))) "true" -}}
+{{- $tbImageReady := and (ne (default "" $tbRepo) "") $tbDigestValid -}}
+{{- $runtimeSecretName := include "accesshub.runtimeSecretName" . -}}
+{{- $tbTriggerRaw := .Values.tenantBootstrap.trigger | default "manual" -}}
+{{- $tbTriggerSanitized := regexReplaceAll "[^a-z0-9-]" (lower $tbTriggerRaw) "-" -}}
+{{- $tbTriggerCompact := regexReplaceAll "-+" $tbTriggerSanitized "-" -}}
+{{- $tbTriggerTrimmed := trimAll "-" $tbTriggerCompact -}}
+{{- $tbTriggerFinal := default "manual" $tbTriggerTrimmed -}}
+{{- $tbTriggerHash := sha256sum $tbTriggerFinal | trunc 8 -}}
+{{- $tbBaseName := include "accesshub.fullname" . -}}
+{{- $tbName := printf "%s-tb-%s" $tbBaseName $tbTriggerHash | trunc 63 | trimSuffix "-" -}}
+{{- if and .Values.tenantBootstrap.enabled $tbImageReady }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ $tbName }}
+  labels:
+    {{- include "accesshub.labels" . | nindent 4 }}
+    app.kubernetes.io/component: tenant-bootstrap
+  annotations:
+    argocd.argoproj.io/hook: PostSync
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation,HookSucceeded
+    argocd.argoproj.io/sync-wave: "10"
+    accesshub.io/tenant-bootstrap-trigger: {{ .Values.tenantBootstrap.trigger | default "" | quote }}
+spec:
+  backoffLimit: {{ .Values.tenantBootstrap.backoffLimit }}
+  {{- with .Values.tenantBootstrap.ttlSecondsAfterFinished }}
+  ttlSecondsAfterFinished: {{ . }}
+  {{- end }}
+  template:
+    metadata:
+      labels:
+        {{- include "accesshub.labels" . | nindent 8 }}
+        app.kubernetes.io/component: tenant-bootstrap
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: tenant-bootstrap
+          image: {{ include "accesshub.image" (dict "root" . "svc" (dict "repository" $tbRepo "digest" $tbDigest) "name" "tenantBootstrap.image") | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/bash
+            - -c
+            - |
+              set -euo pipefail
+              export CONFIG_INIT_DEBUG=true
+              /usr/local/bin/run-config-init.sh --tenant-only
+              echo "Tenant bootstrap script preview (first matching 12 lines after substitution):"
+              grep -nE "http?://|/authcontroller/|/uiprivilege/api/v1/|/privilegedrole/api/v1/|tenantId|NATIVE_SUPERADMINID|NATIVE_SUPERADMIN_PWD" /app/Accesshub_Files/Install_Scripts/tenantsetup.sh | head -12 || true
+              /bin/bash /app/Accesshub_Files/Install_Scripts/tenantsetup.sh | tee /tmp/tenantsetup.log
+              rc=0
+              if grep -Eiq "502 Bad Gateway|Configure Path is not available|Exception|\"error\"|\"errors\"" /tmp/tenantsetup.log; then
+                echo "Tenant bootstrap detected API/business error in tenantsetup output"
+                rc=1
+              fi
+              exit "$rc"
+          env:
+            {{- if $runtimeSecretName }}
+            - name: ACCESSHUB_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ .Values.global.runtime.existingSecretBaseUrlKey }}
+            - name: TENANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ .Values.global.runtime.existingSecretTenantIdKey }}
+            - name: NATIVE_SUPERADMINID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ .Values.global.runtime.existingSecretNativeSuperadminIdKey }}
+            - name: NATIVE_SUPERADMIN_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ .Values.global.runtime.existingSecretNativeSuperadminPasswordKey }}
+            {{- else }}
+            - name: ACCESSHUB_BASE_URL
+              value: {{ .Values.global.runtime.baseUrl | quote }}
+            - name: TENANT_ID
+              value: {{ .Values.global.runtime.tenantId | quote }}
+            - name: NATIVE_SUPERADMINID
+              value: {{ .Values.global.runtime.nativeSuperadminId | quote }}
+            - name: NATIVE_SUPERADMIN_PWD
+              value: {{ .Values.global.runtime.nativeSuperadminPassword | quote }}
+            {{- end }}
+{{- end }}

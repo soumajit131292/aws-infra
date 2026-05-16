@@ -1,0 +1,62 @@
+# FROM maven:3.9.9-eclipse-temurin-11 AS builder
+# WORKDIR /build
+# COPY . .
+# RUN mvn -f src/AccessHubGateway/pgmodule/pom.xml -DskipTests clean package
+
+# FROM eclipse-temurin:11-jre
+# WORKDIR /app
+# COPY src/AccessHubGateway/app/TargetAppResources /app/TargetAppResources
+# RUN mkdir -p /app/ProvisioningGatewayModule
+# COPY --from=builder /build/src/AccessHubGateway/pgmodule/target/pgmodule-0.0.1-SNAPSHOT.jar /app/ProvisioningGatewayModule/pgmodule-0.0.1-SNAPSHOT.jar
+# COPY deploy/docker/scripts/run-db-service.sh /usr/local/bin/run-db-service.sh
+# COPY deploy/docker/scripts/run-config-init.sh /usr/local/bin/run-config-init.sh
+# RUN chmod +x /usr/local/bin/run-db-service.sh /usr/local/bin/run-config-init.sh
+# ENV DATABASE=POSTGRES
+# ENV SERVER_PORT=8095
+# ENV JAR_PATH=/app/ProvisioningGatewayModule/pgmodule-0.0.1-SNAPSHOT.jar
+# EXPOSE 8095
+# ENTRYPOINT ["/bin/sh", "/usr/local/bin/run-db-service.sh"]
+
+ARG BASE_REGISTRY=495711089104.dkr.ecr.us-east-1.amazonaws.com
+FROM ${BASE_REGISTRY}/thirdparty/maven:3.9.9-eclipse-temurin-11-amd64-platform AS builder
+WORKDIR /build
+COPY . .
+RUN mvn -f src/AccessHubGateway/pgmodule/pom.xml -DskipTests clean package
+RUN set -e; \
+  src_root=""; \
+  if [ -d /build/src/AccessHubGateway/app/Accesshub_Files ]; then \
+    src_root="/build/src/AccessHubGateway/app/Accesshub_Files"; \
+  elif [ -d /build/AccessHubGateway/app/Accesshub_Files ]; then \
+    src_root="/build/AccessHubGateway/app/Accesshub_Files"; \
+  else \
+    echo "Accesshub_Files source folder not found"; \
+    exit 1; \
+  fi; \
+  mkdir -p /build/accesshub_files_bundle; \
+  for d in Install_Scripts Accesshub_Job_Files workday_report; do \
+    if [ ! -d "${src_root}/${d}" ]; then \
+      echo "Missing required folder: ${src_root}/${d}"; \
+      exit 1; \
+    fi; \
+    cp -a "${src_root}/${d}" "/build/accesshub_files_bundle/${d}"; \
+  done
+
+FROM ${BASE_REGISTRY}/thirdparty/eclipse-temurin:11-jre-amd64-platform
+WORKDIR /app
+COPY src/AccessHubGateway/app/TargetAppResources /app/TargetAppResources
+COPY src/AccessHubGateway/app/authfiles /app/authfiles
+COPY --from=builder /build/accesshub_files_bundle /app/Accesshub_Files
+COPY src/AccessHubGateway/app/schemaMapper /app/schemaMapper
+COPY src/AccessHubGateway/app/SchemaDefinition /app/SchemaDefinition
+RUN mkdir -p /app/ProvisioningGatewayModule /app/log/pgmodule
+COPY --from=builder /build/src/AccessHubGateway/pgmodule/target/pgmodule-0.0.1-SNAPSHOT.jar /app/ProvisioningGatewayModule/pgmodule-0.0.1-SNAPSHOT.jar
+COPY deploy/docker/scripts/run-db-service.sh /usr/local/bin/run-db-service.sh
+COPY deploy/docker/scripts/run-config-init.sh /usr/local/bin/run-config-init.sh
+RUN chmod +x /usr/local/bin/run-db-service.sh /usr/local/bin/run-config-init.sh
+ENV DATABASE=POSTGRES
+ENV SERVER_PORT=8095
+ENV JAR_PATH=/app/ProvisioningGatewayModule/pgmodule-0.0.1-SNAPSHOT.jar
+ENV LOG_PATH=/app/log/pgmodule
+ENV LOG_FILENAME=pgmodule
+EXPOSE 8095
+ENTRYPOINT ["/bin/sh", "/usr/local/bin/run-db-service.sh"]

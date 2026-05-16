@@ -1,0 +1,25 @@
+{{- $root := . -}}
+{{- $ha := .Values.healthAggregator | default dict -}}
+{{- if $ha.enabled }}
+{{- $upstreamReleaseName := default .Release.Name $ha.upstreamReleaseName -}}
+{{- $upstreamFullname := printf "%s-%s" $upstreamReleaseName (include "accesshub.name" $root) -}}
+{{- $serviceEntries := list -}}
+{{- range $name := ($ha.serviceNames | default (list)) -}}
+{{- $svc := index $root.Values.services $name -}}
+{{- $path := default "/actuator/health" (index $ha.checkPaths $name) -}}
+{{- $entry := printf "%s:http://%s-%s:%v%s" $name $upstreamFullname $name ($svc.port | default 80) $path -}}
+{{- $serviceEntries = append $serviceEntries $entry -}}
+{{- end -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "accesshub.fullname" . }}-health-aggregator-config
+  labels:
+    {{- include "accesshub.labels" . | nindent 4 }}
+    app.kubernetes.io/component: health-aggregator
+data:
+  SERVICES: {{ join "," $serviceEntries | quote }}
+  CRITICAL_SERVICES: {{ join "," ($ha.criticalServices | default (list)) | quote }}
+  CHECK_TIMEOUT_SECONDS: {{ printf "%v" ($ha.checkTimeoutSeconds | default "2.5") | quote }}
+  MAX_PARALLEL_CHECKS: {{ printf "%v" ($ha.maxParallelChecks | default "16") | quote }}
+{{- end }}

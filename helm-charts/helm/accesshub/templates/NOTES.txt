@@ -1,0 +1,4 @@
+AccessHub services have been deployed.
+
+To list services:
+  kubectl get svc -l app.kubernetes.io/instance={{ .Release.Name }} -n {{ .Release.Namespace }}

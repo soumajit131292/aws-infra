@@ -1,0 +1,56 @@
+global:
+  imageRegistry: 495711089104.dkr.ecr.eu-west-1.amazonaws.com
+
+ingress:
+  enabled: true
+  className: alb
+  host: ''
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: accesshub-prod-alb
+    alb.ingress.kubernetes.io/load-balancer-attributes: access_logs.s3.enabled=true,access_logs.s3.bucket=prod-accesshub-alb-access-logs-495711089104-eu-west-1,access_logs.s3.prefix=alb/accesshub,deletion_protection.enabled=true
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:eu-west-1:495711089104:regional/webacl/prod-accesshub-waf/5bcf94b5-9b96-4612-aae7-a5ec9f0bbf82
+    alb.ingress.kubernetes.io/group.name: accesshub-prod
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/inbound-cidrs: 0.0.0.0/0
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/success-codes: 200-399
+
+services:
+  ahschedular:
+    port: 8070
+  adminsvc:
+    port: 8107
+  apponbsvc:
+    port: 8108
+  loginmodsvc:
+    port: 8098
+  gatewaysvc:
+    repository: accesshub/gatewaysvc
+    digest: sha256:5e1bd3ca06d4fe29f976abecdcc81558265bb9cba5b2588bd5fcf0b521a94523
+    port: 8082
+  pgmodsvc:
+    port: 8095
+  scimpersist:
+    port: 8091
+
+healthAggregator:
+  enabled: true
+  upstreamReleaseName: accesshub-prod
+  replicaCount: 3
+  image:
+    repository: accesshub/health-aggregator
+    digest: sha256:1519d91e84e442f3059e85152c18f1d876dee22e1293b69bdd1b84ace1728932
+  resources:
+    requests:
+      cpu: 30m
+      memory: 100Mi
+    limits:
+      cpu: 30m
+      memory: 100Mi
+  ingress:
+    enabled: true
+    path: /region-healthz
+    pathType: Prefix
+    healthCheckPath: /healthz
