@@ -46,3 +46,13 @@ output "efs_security_group_id" {
   description = "Security group ID used by EFS mount targets"
   value       = module.eks.efs_security_group_id
 }
+
+output "efs_logs_file_system_id" {
+  description = "Region-local logs EFS file system ID."
+  value       = module.eks.efs_logs_file_system_id
+}
+
+output "efs_logs_security_group_id" {
+  description = "Security group ID used by the logs EFS mount targets."
+  value       = module.eks.efs_logs_security_group_id
+}

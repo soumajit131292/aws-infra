@@ -1,0 +1,23 @@
+{{- $root := . -}}
+{{- range $name, $svc := .Values.services }}
+{{- if eq (include "accesshub.deployService" (dict "enabled" $svc.enabled "digest" $svc.digest)) "true" }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "accesshub.fullname" $root }}-{{ $name }}
+  labels:
+    {{- include "accesshub.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  type: {{ $root.Values.service.type }}
+  selector:
+    app.kubernetes.io/instance: {{ $root.Release.Name }}
+    app.kubernetes.io/component: {{ $name }}
+  ports:
+    - name: http
+      port: {{ $svc.port }}
+      targetPort: {{ default $svc.port $svc.targetPort }}
+      protocol: TCP
+---
+{{- end }}
+{{- end }}

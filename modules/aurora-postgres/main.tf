@@ -114,9 +114,10 @@ resource "aws_rds_cluster" "this" {
   cluster_identifier              = var.cluster_identifier
   engine                          = "aurora-postgresql"
   engine_version                  = var.engine_version
-  database_name                   = var.database_name
-  master_username                 = var.master_username
-  master_password                 = var.master_password
+  database_name                   = var.is_secondary ? null : var.database_name
+  master_username                 = var.is_secondary ? null : var.master_username
+  master_password                 = var.is_secondary ? null : var.master_password
+  global_cluster_identifier       = var.global_cluster_identifier
   db_subnet_group_name            = aws_db_subnet_group.this.name
   vpc_security_group_ids          = [aws_security_group.aurora.id]
   port                            = var.port
@@ -133,9 +134,20 @@ resource "aws_rds_cluster" "this" {
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
 
   lifecycle {
+    # AWS sets global_cluster_identifier on the PRIMARY cluster when the
+    # aws_rds_global_cluster adopts it (source_db_cluster_identifier flow).
+    # Ignoring this prevents Terraform from seeing drift and attempting a
+    # destructive recreation of the cluster.
+    ignore_changes = [global_cluster_identifier]
+
     precondition {
       condition     = var.skip_final_snapshot || length(var.final_snapshot_identifier) > 0
       error_message = "final_snapshot_identifier must be set when skip_final_snapshot is false"
+    }
+
+    precondition {
+      condition     = !var.is_secondary || var.global_cluster_identifier != null
+      error_message = "global_cluster_identifier is required when is_secondary = true."
     }
   }
 
@@ -287,4 +299,15 @@ resource "aws_db_proxy_target" "cluster" {
   db_proxy_name         = aws_db_proxy.this[0].name
   target_group_name     = aws_db_proxy_default_target_group.this[0].name
   db_cluster_identifier = aws_rds_cluster.this.id
+
+  lifecycle {
+    # When the cluster is replaced (e.g., moving from standalone to
+    # Aurora Global Database secondary), the cluster identifier value
+    # is unchanged, so Terraform would not normally replan this target.
+    # But AWS auto-deregisters the target when its cluster is destroyed,
+    # leaving a stale Terraform state and a broken proxy until the next
+    # apply. replace_triggered_by forces destroy+create of the target
+    # in the same apply as the cluster, keeping proxy attachment in sync.
+    replace_triggered_by = [aws_rds_cluster.this]
+  }
 }

@@ -1,0 +1,94 @@
+{{- $dbSecretName := include "accesshub.dbSecretName" . -}}
+{{- $dbConfigMapName := include "accesshub.dbConfigMapName" . -}}
+{{- $mig := .Values.dbMigration | default dict -}}
+{{- $migImage := $mig.image | default dict -}}
+{{- $migRepo := default "" $migImage.repository -}}
+{{- $migDigest := default "" $migImage.digest -}}
+{{- $migImageReady := and (ne $migRepo "") (eq (include "accesshub.validDigest" (dict "digest" $migDigest)) "true") -}}
+{{- if and $mig.enabled $migImageReady $dbSecretName }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "accesshub.fullname" . }}-db-migration
+  labels:
+    {{- include "accesshub.labels" . | nindent 4 }}
+    app.kubernetes.io/component: db-migration
+  annotations:
+    argocd.argoproj.io/hook: PreSync
+    argocd.argoproj.io/sync-wave: "-1"
+    argocd.argoproj.io/hook-delete-policy: BeforeHookCreation
+spec:
+  backoffLimit: {{ $mig.backoffLimit }}
+  activeDeadlineSeconds: {{ $mig.activeDeadlineSeconds }}
+  template:
+    metadata:
+      labels:
+        {{- include "accesshub.labels" . | nindent 8 }}
+        app.kubernetes.io/component: db-migration
+    spec:
+      restartPolicy: OnFailure
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: flyway
+          image: {{ include "accesshub.image" (dict "root" . "svc" (dict "repository" $migRepo "digest" $migDigest) "name" "dbMigration.image") | quote }}
+          imagePullPolicy: {{ $mig.imagePullPolicy | quote }}
+          args:
+            - migrate
+          env:
+            {{- if and $dbConfigMapName (not .Values.global.database.configMap.create) }}
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $dbConfigMapName }}
+                  key: {{ .Values.global.database.existingConfigMapHostKey }}
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $dbConfigMapName }}
+                  key: {{ .Values.global.database.existingConfigMapNameKey }}
+            {{- else }}
+            - name: DB_HOST
+              value: {{ .Values.global.database.host | quote }}
+            - name: DB_NAME
+              value: {{ .Values.global.database.name | quote }}
+            {{- end }}
+            - name: DB_PORT
+              value: {{ printf "%v" .Values.global.database.port | quote }}
+            - name: FLYWAY_URL
+              value: jdbc:postgresql://$(DB_HOST):$(DB_PORT)/$(DB_NAME)
+            - name: FLYWAY_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $dbSecretName }}
+                  key: {{ .Values.global.database.existingSecretUserKey }}
+            - name: FLYWAY_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $dbSecretName }}
+                  key: {{ .Values.global.database.existingSecretPasswordKey }}
+            - name: FLYWAY_CONNECT_RETRIES
+              value: {{ printf "%v" $mig.flyway.connectRetries | quote }}
+            - name: FLYWAY_LOCATIONS
+              value: {{ $mig.flyway.locations | quote }}
+            - name: FLYWAY_BASELINE_ON_MIGRATE
+              value: {{ printf "%v" $mig.flyway.baselineOnMigrate | quote }}
+            - name: FLYWAY_BASELINE_VERSION
+              value: {{ $mig.flyway.baselineVersion | quote }}
+            - name: FLYWAY_TABLE
+              value: {{ $mig.flyway.table | quote }}
+{{- end }}

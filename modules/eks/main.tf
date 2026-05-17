@@ -330,7 +330,7 @@ resource "aws_iam_role_policy_attachment" "ebs_csi" {
 ## EFS + EFS CSI ##
 ###############################
 resource "aws_security_group" "efs" {
-  count = var.enable_efs_csi_driver ? 1 : 0
+  count = var.enable_efs_csi_driver && var.create_efs_file_system ? 1 : 0
 
   name        = "${var.cluster_name}-efs-sg"
   description = "Security group for EFS mounts from EKS workloads"
@@ -365,7 +365,7 @@ resource "aws_security_group" "efs" {
 }
 
 resource "aws_efs_file_system" "this" {
-  count = var.enable_efs_csi_driver ? 1 : 0
+  count = var.enable_efs_csi_driver && var.create_efs_file_system ? 1 : 0
 
   encrypted        = var.efs_encrypted
   performance_mode = var.efs_performance_mode
@@ -377,7 +377,7 @@ resource "aws_efs_file_system" "this" {
 }
 
 resource "aws_efs_mount_target" "this" {
-  for_each = var.enable_efs_csi_driver ? toset(var.private_app_subnet_ids) : toset([])
+  for_each = var.enable_efs_csi_driver && var.create_efs_file_system ? toset(var.private_app_subnet_ids) : toset([])
 
   file_system_id  = aws_efs_file_system.this[0].id
   subnet_id       = each.value
@@ -426,9 +426,81 @@ resource "aws_eks_addon" "efs_csi" {
 }
 
 resource "aws_efs_backup_policy" "this" {
-  count = var.enable_efs_csi_driver && var.enable_efs_backup ? 1 : 0
+  count = var.enable_efs_csi_driver && var.enable_efs_backup && var.create_efs_file_system ? 1 : 0
 
   file_system_id = aws_efs_file_system.this[0].id
+
+  backup_policy {
+    status = "ENABLED"
+  }
+}
+
+###############################
+## Logs EFS (region-local)   ##
+###############################
+# Separate EFS dedicated to /app/log so warm-standby pods in a DR region can
+# write logs even when the primary data EFS is a read-only cross-region
+# replica. This EFS is NEVER replicated cross-region.
+
+resource "aws_security_group" "efs_logs" {
+  count = var.enable_efs_csi_driver && var.create_efs_logs_file_system ? 1 : 0
+
+  name        = "${var.cluster_name}-efs-logs-sg"
+  description = "Security group for the region-local logs EFS"
+  vpc_id      = var.vpc_id
+
+  ingress {
+    description     = "NFS from EKS cluster security group"
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [aws_eks_cluster.this.vpc_config[0].cluster_security_group_id]
+  }
+
+  ingress {
+    description     = "NFS from private app security group"
+    from_port       = 2049
+    to_port         = 2049
+    protocol        = "tcp"
+    security_groups = [var.private_app_sg_id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_name}-efs-logs-sg"
+  })
+}
+
+resource "aws_efs_file_system" "logs" {
+  count = var.enable_efs_csi_driver && var.create_efs_logs_file_system ? 1 : 0
+
+  encrypted        = var.efs_logs_encrypted
+  performance_mode = var.efs_logs_performance_mode
+  throughput_mode  = var.efs_logs_throughput_mode
+
+  tags = merge(var.tags, {
+    Name = "${var.cluster_name}-efs-logs"
+  })
+}
+
+resource "aws_efs_mount_target" "logs" {
+  for_each = var.enable_efs_csi_driver && var.create_efs_logs_file_system ? toset(var.private_app_subnet_ids) : toset([])
+
+  file_system_id  = aws_efs_file_system.logs[0].id
+  subnet_id       = each.value
+  security_groups = [aws_security_group.efs_logs[0].id]
+}
+
+resource "aws_efs_backup_policy" "logs" {
+  count = var.enable_efs_csi_driver && var.enable_efs_logs_backup && var.create_efs_logs_file_system ? 1 : 0
+
+  file_system_id = aws_efs_file_system.logs[0].id
 
   backup_policy {
     status = "ENABLED"

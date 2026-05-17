@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: accesshub-health-aggregator-config
+  namespace: accesshub
+data:
+  SERVICES: >-
+    ahschedular:http://accesshub-accesshub-ahschedular:8070/actuator/health,
+    adminsvc:http://accesshub-accesshub-adminsvc:8107/actuator/health,
+    apponbsvc:http://accesshub-accesshub-apponbsvc:8108/actuator/health,
+    loginmodsvc:http://accesshub-accesshub-loginmodsvc:8098/actuator/health,
+    gatewaysvc:http://accesshub-accesshub-gatewaysvc:8082/actuator/health,
+    pgmodsvc:http://accesshub-accesshub-pgmodsvc:8095/actuator/health,
+    scimpersist:http://accesshub-accesshub-scimpersist:8091/actuator/health
+  CRITICAL_SERVICES: "ahschedular,adminsvc,apponbsvc,loginmodsvc,gatewaysvc,pgmodsvc,scimpersist"
+  CHECK_TIMEOUT_SECONDS: "2.5"
+  MAX_PARALLEL_CHECKS: "16"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: accesshub-health-aggregator
+  namespace: accesshub
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: accesshub-health-aggregator
+  template:
+    metadata:
+      labels:
+        app: accesshub-health-aggregator
+    spec:
+      containers:
+        - name: aggregator
+          image: <your-ecr-repo>/accesshub-health-aggregator:<tag>
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: accesshub-health-aggregator-config
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 15
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: accesshub-health-aggregator
+  namespace: accesshub
+spec:
+  selector:
+    app: accesshub-health-aggregator
+  ports:
+    - port: 80
+      targetPort: 8080
+      protocol: TCP
+      name: http

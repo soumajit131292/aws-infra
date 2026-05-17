@@ -47,6 +47,18 @@ variable "enable_efs_csi_driver" {
   default     = true
 }
 
+variable "create_efs_file_system" {
+  description = <<-EOT
+    When true (default), this module creates the EFS file system, its mount targets,
+    its security group, and the EFS backup policy alongside the CSI driver.
+    Set to false when this cluster consumes an external EFS (e.g., a cross-region
+    replicated EFS). The CSI driver addon and IRSA role are still created when
+    enable_efs_csi_driver=true.
+  EOT
+  type        = bool
+  default     = true
+}
+
 variable "efs_encrypted" {
   description = "Whether to enable encryption at rest for EFS."
   type        = bool
@@ -67,6 +79,41 @@ variable "efs_throughput_mode" {
 
 variable "enable_efs_backup" {
   description = "Enable EFS automatic backup policy on the EFS file system."
+  type        = bool
+  default     = false
+}
+
+variable "create_efs_logs_file_system" {
+  description = <<-EOT
+    When true, create a SEPARATE EFS file system dedicated to application logs.
+    This is independent of create_efs_file_system. The logs EFS is region-local
+    (never replicated cross-region) so warm-standby pods in a DR region can
+    still write logs even when the data EFS is a read-only replica.
+  EOT
+  type        = bool
+  default     = false
+}
+
+variable "efs_logs_encrypted" {
+  description = "Encryption at rest for the logs EFS."
+  type        = bool
+  default     = true
+}
+
+variable "efs_logs_performance_mode" {
+  description = "Performance mode for the logs EFS."
+  type        = string
+  default     = "generalPurpose"
+}
+
+variable "efs_logs_throughput_mode" {
+  description = "Throughput mode for the logs EFS."
+  type        = string
+  default     = "elastic"
+}
+
+variable "enable_efs_logs_backup" {
+  description = "Enable AWS Backup policy on the logs EFS. Usually false (logs are ephemeral and also shipped to CloudWatch / SIEM)."
   type        = bool
   default     = false
 }

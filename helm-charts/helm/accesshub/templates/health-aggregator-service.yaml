@@ -1,0 +1,23 @@
+{{- $ha := .Values.healthAggregator | default dict -}}
+{{- $repo := default "" $ha.image.repository -}}
+{{- $digest := default "" $ha.image.digest -}}
+{{- $digestValid := eq (include "accesshub.validDigest" (dict "digest" $digest)) "true" -}}
+{{- if and $ha.enabled (ne $repo "") $digestValid }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "accesshub.fullname" . }}-health-aggregator
+  labels:
+    {{- include "accesshub.labels" . | nindent 4 }}
+    app.kubernetes.io/component: health-aggregator
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: health-aggregator
+  ports:
+    - name: http
+      port: {{ default 80 $ha.service.port }}
+      targetPort: {{ default 8080 $ha.service.targetPort }}
+      protocol: TCP
+{{- end }}

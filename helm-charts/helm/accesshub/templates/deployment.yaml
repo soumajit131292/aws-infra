@@ -1,0 +1,468 @@
+{{- $root := . -}}
+{{- $dbSecretName := include "accesshub.dbSecretName" . -}}
+{{- $dbConfigMapName := include "accesshub.dbConfigMapName" . -}}
+{{- $runtimeSecretName := include "accesshub.runtimeSecretName" . -}}
+{{- $authFilesPersistence := default (dict) $root.Values.authFilesPersistence -}}
+{{- $logPvcEnabled := and $root.Values.persistentLogs.enabled (ne (default "" $root.Values.persistentLogs.claimName) "") -}}
+{{- $loginAuthPersistenceEnabled := and $root.Values.loginAuthSourcePersistence.enabled (ne (default "" $root.Values.loginAuthSourcePersistence.claimName) "") -}}
+{{- $targetAppResourcesPersistenceEnabled := and $root.Values.targetAppResourcesPersistence.enabled (ne (default "" $root.Values.targetAppResourcesPersistence.claimName) "") -}}
+{{- $schemaAssetsPersistenceEnabled := and $root.Values.schemaAssetsPersistence.enabled (ne (default "" $root.Values.schemaAssetsPersistence.claimName) "") -}}
+{{- $accesshubFilesPersistenceEnabled := and $root.Values.accesshubFilesPersistence.enabled (ne (default "" $root.Values.accesshubFilesPersistence.claimName) "") -}}
+{{- $authFilesPersistenceEnabled := and (default false $authFilesPersistence.enabled) (ne (default "" $authFilesPersistence.claimName) "") -}}
+{{- range $name, $svc := .Values.services }}
+{{- if eq (include "accesshub.deployService" (dict "enabled" $svc.enabled "digest" $svc.digest)) "true" }}
+{{- $logPvcExcluded := has $name ($root.Values.persistentLogs.excludedServices | default (list)) -}}
+{{- $mountLogPvc := and $logPvcEnabled (not $logPvcExcluded) -}}
+{{- $mountLoginAuthPvc := and $loginAuthPersistenceEnabled (eq $name ($root.Values.loginAuthSourcePersistence.service | default "loginmodsvc")) -}}
+{{- $targetExcluded := has $name ($root.Values.targetAppResourcesPersistence.excludedServices | default (list)) -}}
+{{- $mountTargetAppResourcesPvc := and $targetAppResourcesPersistenceEnabled (not $targetExcluded) -}}
+{{- $schemaExcluded := has $name ($root.Values.schemaAssetsPersistence.excludedServices | default (list)) -}}
+{{- $mountSchemaAssetsPvc := and $schemaAssetsPersistenceEnabled (not $schemaExcluded) -}}
+{{- $accesshubFilesExcluded := has $name ($root.Values.accesshubFilesPersistence.excludedServices | default (list)) -}}
+{{- $mountAccesshubFilesPvc := and $accesshubFilesPersistenceEnabled (not $accesshubFilesExcluded) -}}
+{{- $authFilesExcluded := has $name ($authFilesPersistence.excludedServices | default (list)) -}}
+{{- $mountAuthFilesPvc := and $authFilesPersistenceEnabled (not $authFilesExcluded) -}}
+{{- $targetSubPath := default "" $root.Values.targetAppResourcesPersistence.subPath -}}
+{{- $schemaSubPath := default "" $root.Values.schemaAssetsPersistence.subPath -}}
+{{- $accesshubFilesSubPath := default "" $root.Values.accesshubFilesPersistence.subPath -}}
+{{- $authFilesSubPath := default "" $authFilesPersistence.subPath -}}
+{{- $targetSubPathBase := trimSuffix "/" $targetSubPath -}}
+{{- $targetSubPathResolved := $name -}}
+{{- if ne $targetSubPathBase "" -}}
+{{- $targetSubPathResolved = printf "%s/%s" $targetSubPathBase $name -}}
+{{- end -}}
+{{- $logClaim := default "" $root.Values.persistentLogs.claimName -}}
+{{- $loginClaim := default "" $root.Values.loginAuthSourcePersistence.claimName -}}
+{{- $targetClaim := default "" $root.Values.targetAppResourcesPersistence.claimName -}}
+{{- $schemaClaim := default "" $root.Values.schemaAssetsPersistence.claimName -}}
+{{- $accesshubFilesClaim := default "" $root.Values.accesshubFilesPersistence.claimName -}}
+{{- $authFilesClaim := default "" $authFilesPersistence.claimName -}}
+{{- $loginVolumeName := "login-auth-source" -}}
+{{- if and $mountLoginAuthPvc $mountLogPvc (eq $loginClaim $logClaim) -}}
+{{- $loginVolumeName = "shared-logs" -}}
+{{- end -}}
+{{- $targetVolumeName := "target-app-resources" -}}
+{{- if and $mountTargetAppResourcesPvc $mountLogPvc (eq $targetClaim $logClaim) -}}
+{{- $targetVolumeName = "shared-logs" -}}
+{{- else if and $mountTargetAppResourcesPvc $mountLoginAuthPvc (eq $targetClaim $loginClaim) -}}
+{{- $targetVolumeName = $loginVolumeName -}}
+{{- end -}}
+{{- $schemaVolumeName := "schema-assets" -}}
+{{- if and $mountSchemaAssetsPvc $mountLogPvc (eq $schemaClaim $logClaim) -}}
+{{- $schemaVolumeName = "shared-logs" -}}
+{{- else if and $mountSchemaAssetsPvc $mountLoginAuthPvc (eq $schemaClaim $loginClaim) -}}
+{{- $schemaVolumeName = $loginVolumeName -}}
+{{- else if and $mountSchemaAssetsPvc $mountTargetAppResourcesPvc (eq $schemaClaim $targetClaim) -}}
+{{- $schemaVolumeName = $targetVolumeName -}}
+{{- end -}}
+{{- $accesshubFilesVolumeName := "accesshub-files" -}}
+{{- if and $mountAccesshubFilesPvc $mountLogPvc (eq $accesshubFilesClaim $logClaim) -}}
+{{- $accesshubFilesVolumeName = "shared-logs" -}}
+{{- else if and $mountAccesshubFilesPvc $mountLoginAuthPvc (eq $accesshubFilesClaim $loginClaim) -}}
+{{- $accesshubFilesVolumeName = $loginVolumeName -}}
+{{- else if and $mountAccesshubFilesPvc $mountTargetAppResourcesPvc (eq $accesshubFilesClaim $targetClaim) -}}
+{{- $accesshubFilesVolumeName = $targetVolumeName -}}
+{{- else if and $mountAccesshubFilesPvc $mountSchemaAssetsPvc (eq $accesshubFilesClaim $schemaClaim) -}}
+{{- $accesshubFilesVolumeName = $schemaVolumeName -}}
+{{- end -}}
+{{- $authFilesVolumeName := "auth-files" -}}
+{{- if and $mountAuthFilesPvc $mountLogPvc (eq $authFilesClaim $logClaim) -}}
+{{- $authFilesVolumeName = "shared-logs" -}}
+{{- else if and $mountAuthFilesPvc $mountLoginAuthPvc (eq $authFilesClaim $loginClaim) -}}
+{{- $authFilesVolumeName = $loginVolumeName -}}
+{{- else if and $mountAuthFilesPvc $mountTargetAppResourcesPvc (eq $authFilesClaim $targetClaim) -}}
+{{- $authFilesVolumeName = $targetVolumeName -}}
+{{- else if and $mountAuthFilesPvc $mountSchemaAssetsPvc (eq $authFilesClaim $schemaClaim) -}}
+{{- $authFilesVolumeName = $schemaVolumeName -}}
+{{- else if and $mountAuthFilesPvc $mountAccesshubFilesPvc (eq $authFilesClaim $accesshubFilesClaim) -}}
+{{- $authFilesVolumeName = $accesshubFilesVolumeName -}}
+{{- end -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "accesshub.fullname" $root }}-{{ $name }}
+  labels:
+    {{- include "accesshub.labels" $root | nindent 4 }}
+    app.kubernetes.io/component: {{ $name }}
+spec:
+  replicas: {{ $svc.replicaCount | default 3 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ $root.Release.Name }}
+      app.kubernetes.io/component: {{ $name }}
+  template:
+    metadata:
+      labels:
+        {{- include "accesshub.labels" $root | nindent 8 }}
+        app.kubernetes.io/component: {{ $name }}
+        {{- with $root.Values.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $root.Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with $root.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if or $mountTargetAppResourcesPvc $mountSchemaAssetsPvc $mountAccesshubFilesPvc $mountAuthFilesPvc }}
+      initContainers:
+        {{- if $mountTargetAppResourcesPvc }}
+        - name: seed-target-app-resources
+          image: {{ include "accesshub.image" (dict "root" $root "svc" $svc "name" $name) | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              src="/app/TargetAppResources/resources/ApplicationRegistration"
+              dst="/mnt/target-app-resources"
+              mkdir -p "$dst"
+              if [ -z "$(ls -A "$dst" 2>/dev/null)" ]; then
+                echo "Seeding ApplicationRegistration into PVC subPath for {{ $name }}"
+                cp -a "$src"/. "$dst"/
+              else
+                echo "PVC subPath already populated for {{ $name }}; skipping seed"
+              fi
+          volumeMounts:
+            - name: {{ $targetVolumeName }}
+              mountPath: /mnt/target-app-resources
+              subPath: {{ $targetSubPathResolved | quote }}
+        {{- end }}
+        {{- if $mountSchemaAssetsPvc }}
+        - name: seed-schema-assets
+          image: {{ include "accesshub.image" (dict "root" $root "svc" $svc "name" $name) | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              mapper_src="/app/schemaMapper"
+              def_src="/app/SchemaDefinition"
+              dst_root="/mnt/schema-assets"
+              mapper_dst="$dst_root/schemaMapper"
+              def_dst="$dst_root/SchemaDefinition"
+              mkdir -p "$mapper_dst" "$def_dst"
+              if [ -d "$mapper_src" ]; then
+                if [ -z "$(ls -A "$mapper_dst" 2>/dev/null)" ]; then
+                  echo "Seeding schemaMapper into PVC subPath for {{ $name }}"
+                  cp -a "$mapper_src"/. "$mapper_dst"/
+                else
+                  echo "schemaMapper already populated for {{ $name }}; skipping seed"
+                fi
+              else
+                echo "schemaMapper source not found for {{ $name }}; skipping"
+              fi
+              if [ -d "$def_src" ]; then
+                if [ -z "$(ls -A "$def_dst" 2>/dev/null)" ]; then
+                  echo "Seeding SchemaDefinition into PVC subPath for {{ $name }}"
+                  cp -a "$def_src"/. "$def_dst"/
+                else
+                  echo "SchemaDefinition already populated for {{ $name }}; skipping seed"
+                fi
+              else
+                echo "SchemaDefinition source not found for {{ $name }}; skipping"
+              fi
+          volumeMounts:
+            - name: {{ $schemaVolumeName }}
+              mountPath: /mnt/schema-assets
+              {{- with $schemaSubPath }}
+              subPath: {{ . | quote }}
+              {{- end }}
+        {{- end }}
+        {{- if $mountAccesshubFilesPvc }}
+        - name: seed-accesshub-files
+          image: {{ include "accesshub.image" (dict "root" $root "svc" $svc "name" $name) | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              src="/app/Accesshub_Files"
+              dst="/mnt/accesshub-files"
+              mkdir -p "$dst"
+              if [ ! -d "$src" ]; then
+                echo "Accesshub_Files source not found for {{ $name }}; skipping seed"
+                exit 0
+              fi
+              if [ -z "$(ls -A "$dst" 2>/dev/null)" ]; then
+                echo "Seeding Accesshub_Files into shared PVC subPath for {{ $name }}"
+                cp -a "$src"/. "$dst"/
+              else
+                echo "Accesshub_Files subPath already populated for {{ $name }}; skipping seed"
+              fi
+          volumeMounts:
+            - name: {{ $accesshubFilesVolumeName }}
+              mountPath: /mnt/accesshub-files
+              {{- with $accesshubFilesSubPath }}
+              subPath: {{ . | quote }}
+              {{- end }}
+        {{- end }}
+        {{- if $mountAuthFilesPvc }}
+        - name: seed-auth-files
+          image: {{ include "accesshub.image" (dict "root" $root "svc" $svc "name" $name) | quote }}
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+            - -c
+            - |
+              set -eu
+              src="/app/authfiles"
+              dst="/mnt/auth-files"
+              mkdir -p "$dst"
+              if [ ! -d "$src" ]; then
+                echo "authfiles source not found for {{ $name }}; skipping seed"
+                exit 0
+              fi
+              if [ -z "$(ls -A "$dst" 2>/dev/null)" ]; then
+                echo "Seeding authfiles into shared PVC subPath for {{ $name }}"
+                cp -a "$src"/. "$dst"/
+              else
+                echo "authfiles subPath already populated for {{ $name }}; skipping seed"
+              fi
+          volumeMounts:
+            - name: {{ $authFilesVolumeName }}
+              mountPath: /mnt/auth-files
+              {{- with $authFilesSubPath }}
+              subPath: {{ . | quote }}
+              {{- end }}
+        {{- end }}
+      {{- end }}
+      containers:
+        - name: {{ $name }}
+          image: {{ include "accesshub.image" (dict "root" $root "svc" $svc "name" $name) | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: {{ $svc.port }}
+              protocol: TCP
+          env:
+            - name: DATABASE
+              value: {{ $root.Values.global.database.mode | quote }}
+            {{- if $dbConfigMapName }}
+            - name: DB_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $dbConfigMapName }}
+                  key: {{ $root.Values.global.database.existingConfigMapHostKey }}
+            - name: DB_PORT
+              value: {{ printf "%v" $root.Values.global.database.port | quote }}
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ $dbConfigMapName }}
+                  key: {{ $root.Values.global.database.existingConfigMapNameKey }}
+            {{- else }}
+            - name: DB_HOST
+              value: {{ $root.Values.global.database.host | quote }}
+            - name: DB_PORT
+              value: {{ printf "%v" $root.Values.global.database.port | quote }}
+            - name: DB_NAME
+              value: {{ $root.Values.global.database.name | quote }}
+            {{- end }}
+            {{- if $dbSecretName }}
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $dbSecretName }}
+                  key: {{ $root.Values.global.database.existingSecretUserKey }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $dbSecretName }}
+                  key: {{ $root.Values.global.database.existingSecretPasswordKey }}
+            {{- else }}
+            - name: DB_USER
+              value: {{ $root.Values.global.database.user | quote }}
+            - name: DB_PASSWORD
+              value: {{ $root.Values.global.database.password | quote }}
+            {{- end }}
+            - name: DB_JDBC_OPTIONS
+              value: {{ $root.Values.global.database.jdbcOptions | quote }}
+            {{- if $runtimeSecretName }}
+            - name: ACCESSHUB_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ $root.Values.global.runtime.existingSecretBaseUrlKey }}
+            - name: TENANT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ $root.Values.global.runtime.existingSecretTenantIdKey }}
+            - name: NATIVE_SUPERADMINID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ $root.Values.global.runtime.existingSecretNativeSuperadminIdKey }}
+            - name: NATIVE_SUPERADMIN_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ $root.Values.global.runtime.existingSecretNativeSuperadminPasswordKey }}
+            - name: GRC_API_ACCESS_USER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ $root.Values.global.runtime.existingSecretGrcApiAccessUserKey }}
+            - name: GRC_API_ACCESS_PWD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $runtimeSecretName }}
+                  key: {{ $root.Values.global.runtime.existingSecretGrcApiAccessPasswordKey }}
+            {{- else }}
+            - name: ACCESSHUB_BASE_URL
+              value: {{ $root.Values.global.runtime.baseUrl | quote }}
+            - name: TENANT_ID
+              value: {{ $root.Values.global.runtime.tenantId | quote }}
+            - name: NATIVE_SUPERADMINID
+              value: {{ $root.Values.global.runtime.nativeSuperadminId | quote }}
+            - name: NATIVE_SUPERADMIN_PWD
+              value: {{ $root.Values.global.runtime.nativeSuperadminPassword | quote }}
+            - name: GRC_API_ACCESS_USER
+              value: {{ $root.Values.global.runtime.grcApiAccessUser | quote }}
+            - name: GRC_API_ACCESS_PWD
+              value: {{ $root.Values.global.runtime.grcApiAccessPassword | quote }}
+            {{- end }}
+          {{- if or $mountLogPvc $mountLoginAuthPvc $mountTargetAppResourcesPvc $mountSchemaAssetsPvc $mountAccesshubFilesPvc $mountAuthFilesPvc }}
+          volumeMounts:
+            {{- if $mountLogPvc }}
+            - name: shared-logs
+              mountPath: {{ $root.Values.persistentLogs.mountPath | quote }}
+              {{- with $root.Values.persistentLogs.subPath }}
+              subPath: {{ . | quote }}
+              {{- end }}
+            {{- end }}
+            {{- if $mountLoginAuthPvc }}
+            - name: {{ $loginVolumeName }}
+              mountPath: {{ $root.Values.loginAuthSourcePersistence.mountPath | quote }}
+              {{- with $root.Values.loginAuthSourcePersistence.subPath }}
+              subPath: {{ . | quote }}
+              {{- end }}
+            {{- end }}
+            {{- if $mountTargetAppResourcesPvc }}
+            - name: {{ $targetVolumeName }}
+              mountPath: {{ $root.Values.targetAppResourcesPersistence.mountPath | quote }}
+              subPath: {{ $targetSubPathResolved | quote }}
+            {{- end }}
+            {{- if $mountSchemaAssetsPvc }}
+            - name: {{ $schemaVolumeName }}
+              mountPath: {{ $root.Values.schemaAssetsPersistence.schemaMapperMountPath | quote }}
+              {{- with $schemaSubPath }}
+              subPath: {{ printf "%s/schemaMapper" . | quote }}
+              {{- end }}
+            - name: {{ $schemaVolumeName }}
+              mountPath: {{ $root.Values.schemaAssetsPersistence.schemaDefinitionMountPath | quote }}
+              {{- with $schemaSubPath }}
+              subPath: {{ printf "%s/SchemaDefinition" . | quote }}
+              {{- end }}
+            {{- end }}
+            {{- if $mountAccesshubFilesPvc }}
+            - name: {{ $accesshubFilesVolumeName }}
+              mountPath: {{ $root.Values.accesshubFilesPersistence.mountPath | quote }}
+              {{- with $accesshubFilesSubPath }}
+              subPath: {{ . | quote }}
+              {{- end }}
+            {{- end }}
+            {{- if $mountAuthFilesPvc }}
+            - name: {{ $authFilesVolumeName }}
+              mountPath: {{ $authFilesPersistence.mountPath | quote }}
+              {{- with $authFilesSubPath }}
+              subPath: {{ . | quote }}
+              {{- end }}
+            {{- end }}
+          {{- end }}
+          resources:
+            {{- toYaml ($svc.resources | default $root.Values.resources) | nindent 12 }}
+          {{- if $root.Values.probes.enabled }}
+          livenessProbe:
+            httpGet:
+              path: {{ $root.Values.probes.path }}
+              port: http
+            initialDelaySeconds: {{ $root.Values.probes.initialDelaySeconds }}
+            periodSeconds: {{ $root.Values.probes.periodSeconds }}
+            timeoutSeconds: {{ $root.Values.probes.timeoutSeconds }}
+            failureThreshold: {{ $root.Values.probes.failureThreshold }}
+          readinessProbe:
+            httpGet:
+              path: {{ $root.Values.probes.path }}
+              port: http
+            initialDelaySeconds: {{ $root.Values.probes.initialDelaySeconds }}
+            periodSeconds: {{ $root.Values.probes.periodSeconds }}
+            timeoutSeconds: {{ $root.Values.probes.timeoutSeconds }}
+            failureThreshold: {{ $root.Values.probes.failureThreshold }}
+          {{- end }}
+      {{- with $root.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: {{ $root.Release.Name }}
+                    app.kubernetes.io/component: {{ $name }}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ $root.Release.Name }}
+              app.kubernetes.io/component: {{ $name }}
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: {{ $root.Release.Name }}
+              app.kubernetes.io/component: {{ $name }}
+      {{- with $root.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if or $mountLogPvc $mountLoginAuthPvc $mountTargetAppResourcesPvc $mountSchemaAssetsPvc $mountAccesshubFilesPvc $mountAuthFilesPvc }}
+      volumes:
+        {{- if $mountLogPvc }}
+        - name: shared-logs
+          persistentVolumeClaim:
+            claimName: {{ $root.Values.persistentLogs.claimName | quote }}
+        {{- end }}
+        {{- if and $mountLoginAuthPvc (ne $loginVolumeName "shared-logs") }}
+        - name: login-auth-source
+          persistentVolumeClaim:
+            claimName: {{ $root.Values.loginAuthSourcePersistence.claimName | quote }}
+        {{- end }}
+        {{- if and $mountTargetAppResourcesPvc (ne $targetVolumeName "shared-logs") (ne $targetVolumeName "login-auth-source") }}
+        - name: target-app-resources
+          persistentVolumeClaim:
+            claimName: {{ $root.Values.targetAppResourcesPersistence.claimName | quote }}
+        {{- end }}
+        {{- if and $mountSchemaAssetsPvc (ne $schemaVolumeName "shared-logs") (ne $schemaVolumeName "login-auth-source") (ne $schemaVolumeName "target-app-resources") }}
+        - name: schema-assets
+          persistentVolumeClaim:
+            claimName: {{ $root.Values.schemaAssetsPersistence.claimName | quote }}
+        {{- end }}
+        {{- if and $mountAccesshubFilesPvc (ne $accesshubFilesVolumeName "shared-logs") (ne $accesshubFilesVolumeName "login-auth-source") (ne $accesshubFilesVolumeName "target-app-resources") (ne $accesshubFilesVolumeName "schema-assets") }}
+        - name: accesshub-files
+          persistentVolumeClaim:
+            claimName: {{ $root.Values.accesshubFilesPersistence.claimName | quote }}
+        {{- end }}
+        {{- if and $mountAuthFilesPvc (ne $authFilesVolumeName "shared-logs") (ne $authFilesVolumeName "login-auth-source") (ne $authFilesVolumeName "target-app-resources") (ne $authFilesVolumeName "schema-assets") (ne $authFilesVolumeName "accesshub-files") }}
+        - name: auth-files
+          persistentVolumeClaim:
+            claimName: {{ $authFilesPersistence.claimName | quote }}
+        {{- end }}
+      {{- end }}
+---
+{{- end }}
+{{- end }}

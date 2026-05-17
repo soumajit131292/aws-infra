@@ -1,0 +1,74 @@
+{{- $root := . -}}
+{{- $ha := .Values.healthAggregator | default dict -}}
+{{- $repo := default "" $ha.image.repository -}}
+{{- $digest := default "" $ha.image.digest -}}
+{{- $digestValid := eq (include "accesshub.validDigest" (dict "digest" $digest)) "true" -}}
+{{- if and $ha.enabled (ne $repo "") $digestValid }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "accesshub.fullname" . }}-health-aggregator
+  labels:
+    {{- include "accesshub.labels" . | nindent 4 }}
+    app.kubernetes.io/component: health-aggregator
+spec:
+  replicas: {{ default 3 $ha.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: health-aggregator
+  template:
+    metadata:
+      labels:
+        {{- include "accesshub.labels" . | nindent 8 }}
+        app.kubernetes.io/component: health-aggregator
+    spec:
+      {{- with $root.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: health-aggregator
+          image: {{ include "accesshub.image" (dict "root" . "svc" (dict "repository" $repo "digest" $digest) "name" "healthAggregator.image") | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: {{ default 8080 $ha.containerPort }}
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: {{ include "accesshub.fullname" . }}-health-aggregator-config
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+          # readinessProbe:
+          #   httpGet:
+          #     path: {{ default "/healthz" $ha.probePath }}
+          #     port: http
+          #   initialDelaySeconds: {{ default 5 $ha.probes.initialDelaySeconds }}
+          #   periodSeconds: {{ default 15 $ha.probes.periodSeconds }}
+          #   timeoutSeconds: {{ default 5 $ha.probes.timeoutSeconds }}
+          #   failureThreshold: {{ default 3 $ha.probes.failureThreshold }}
+          # livenessProbe:
+          #   httpGet:
+          #     path: {{ default "/healthz" $ha.probePath }}
+          #     port: http
+          #   initialDelaySeconds: {{ default 10 $ha.probes.initialDelaySeconds }}
+          #   periodSeconds: {{ default 20 $ha.probes.periodSeconds }}
+          #   timeoutSeconds: {{ default 5 $ha.probes.timeoutSeconds }}
+          #   failureThreshold: {{ default 3 $ha.probes.failureThreshold }}
+          resources:
+            {{- toYaml ($ha.resources | default dict) | nindent 12 }}
+      {{- with $root.Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $root.Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $root.Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

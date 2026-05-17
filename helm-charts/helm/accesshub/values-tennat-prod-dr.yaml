@@ -1,0 +1,17 @@
+global:
+  imageRegistry: 495711089104.dkr.ecr.eu-central-1.amazonaws.com
+  runtime:
+    existingSecret: accesshub-runtime
+
+services:
+  gatewaysvc:
+    repository: accesshub/gatewaysvc
+    digest: sha256:5e1bd3ca06d4fe29f976abecdcc81558265bb9cba5b2588bd5fcf0b521a94523
+
+tenantBootstrap:
+  enabled: false
+  trigger: ''
+  ttlSecondsAfterFinished: null
+  image:
+    repository: ''
+    digest: ''

@@ -1,3 +1,27 @@
+# ────────────────────────────────────────────────────────────────────────────
+# NOTE: This StorageClass is NOT used by the data PVC `efs-claim` anymore.
+#
+# Why kept:
+#   - Reference / documentation for the dynamic-provisioning pattern.
+#   - Post-failover scenario: once replication is broken and the local EFS
+#     becomes writable, you COULD apply this SC and switch new PVCs to dynamic
+#     provisioning if desired. Not the recommended path; static PV from
+#     efs-pvc.yaml continues to work fine post-failover.
+#
+# Why not used now:
+#   - The replica EFS is READ-ONLY while replication is active.
+#   - Dynamic provisioning (efs-ap mode) creates a new Access Point + writes its
+#     root directory on the EFS → fails with EROFS on a read-only replica.
+#
+# The active manifest for the data EFS is `efs-pvc.yaml` (static PV + PVC).
+# The logs EFS uses its own SC `efs-logs-sc` defined in `efs-logs-storageclass.yaml`.
+#
+# Before applying (if you ever do): replace fileSystemId with the current
+# replica/promoted EFS ID:
+#   terraform -chdir=../../../../../prod/eu-west-1/efs-replication \
+#     output -raw destination_file_system_id
+# ────────────────────────────────────────────────────────────────────────────
+
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
@@ -5,7 +29,7 @@ metadata:
 provisioner: efs.csi.aws.com
 parameters:
   provisioningMode: efs-ap
-  fileSystemId: fs-03805f97527230b57
+  fileSystemId: <FILL_FROM_TF_destination_file_system_id_POST_FAILOVER>
   directoryPerms: "700"
   gidRangeStart: "1000"
   gidRangeEnd: "2000"
