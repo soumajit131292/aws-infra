@@ -8,14 +8,15 @@ ingress:
   annotations:
     alb.ingress.kubernetes.io/load-balancer-name: accesshub-prod-dr-alb
     alb.ingress.kubernetes.io/load-balancer-attributes: access_logs.s3.enabled=true,access_logs.s3.bucket=prod-dr-accesshub-alb-access-logs-495711089104-eu-central-1,access_logs.s3.prefix=alb/accesshub,deletion_protection.enabled=false
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:eu-central-1:495711089104:regional/webacl/prod-dr-lb/0b8b6aa4-ee3a-4a59-a395-51ce0a435595
     alb.ingress.kubernetes.io/group.name: accesshub-prod-dr
     alb.ingress.kubernetes.io/scheme: internet-facing
     alb.ingress.kubernetes.io/inbound-cidrs: 0.0.0.0/0
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/backend-protocol: HTTP
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-central-1:495711089104:certificate/99f4294d-6357-47a3-bc18-b37e788ffee3
     alb.ingress.kubernetes.io/success-codes: 200-399
-
 services:
   ahschedular:
     port: 8070

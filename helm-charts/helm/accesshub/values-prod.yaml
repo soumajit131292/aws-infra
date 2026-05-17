@@ -29,70 +29,70 @@ services:
     enabled: true
     replicaCount: 3
     repository: accesshub/antdui
-    digest: sha256:01e3e91171a1b7cb7e3b5ed77c451bd840fe460f0d9d0a8f42983a302b5a2e94
+    digest: sha256:033c8492b109e729668193d4e442103292293afeb9c7af5d916952a9d214d618
     port: 80
     targetPort: 80
   adminsvc:
     enabled: true
     replicaCount: 3
     repository: accesshub/adminsvc
-    digest: sha256:b73a4c8d41573a13450d982afe7f95de621013bc98175a2675ce6948490c12ae
+    digest: sha256:3be75549f6588ec1477880aab232c54ed6f1812fac3e75476edc41e058c46460
     port: 8107
     targetPort: 8107
   apponbsvc:
     enabled: true
     replicaCount: 3
     repository: accesshub/apponbsvc
-    digest: sha256:a4bacc0b575ac35dd9db721c3e85216e00e0c67e19a036b8c8e5f0e13a941236
+    digest: sha256:e5e43e7fdc63b5314e690c7f7dc2d53bd69a9ed39ad4eaa70b47eef3bcedf83b
     port: 8108
     targetPort: 8108
   pgmodsvc:
     enabled: true
     replicaCount: 3
     repository: accesshub/pgmodsvc
-    digest: sha256:c55861d7a0bfe4daeb08261804fef6501c4575b4336ffdb8ac4f9867c6992fab
+    digest: sha256:892b655ac408e377f52b58f5e088cc041ce21d3bf12157427ea9449b7cb39e4e
     port: 8095
     targetPort: 8095
   loginmodsvc:
     enabled: true
     replicaCount: 3
     repository: accesshub/loginmodsvc
-    digest: sha256:d94ed6990cb6e6dcc09d25f70b08a73a68c161185d55af36216cbd49150ad4d1
+    digest: sha256:3a667dbc4cbb0811904e4fa62853ad1f598470382642aa2531ddec113e6a135d
     port: 8098
     targetPort: 8098
   snowmodsvc:
     enabled: true
     replicaCount: 3
     repository: accesshub/snowmodsvc
-    digest: sha256:5e0a961e45887cf60b042cf196bf1a58e0b67ff1ecbfd83f3c01ae18ee399ee3
+    digest: sha256:bbb6973c8214300a641ab4e32d08090b62a7d432a93733eb4447c4a56ea4bed3
     port: 8110
     targetPort: 8110
   gatewaysvc:
     enabled: true
     replicaCount: 3
     repository: accesshub/gatewaysvc
-    digest: sha256:70de89876e6f98905ac92aaf411dc9ba346d2695b5f2687cf3dde40739897cd9
+    digest: sha256:5f68e11b4a92ffe70f305f340c8eab7c6a0ab7e920fc1226f1b7d7797a90c879
     port: 8082
     targetPort: 8082
   ahschedular:
     enabled: true
     replicaCount: 3
     repository: accesshub/ahschedular
-    digest: sha256:445628744a4a0467be7fda8b4dc73e149ee803f4582929f25c75f6c6902a7b30
+    digest: sha256:7de886e0f2ffb4787e1484256311773f414101987dde96fcfe6348f24910c8ac
     port: 8070
     targetPort: 8070
   scimpersist:
     enabled: true
     replicaCount: 3
     repository: accesshub/scimpersist
-    digest: sha256:9dc99afc4584cc7e86faeb5424e2b8fa9242e10034d99ab0a11574968bffe7b9
+    digest: sha256:5aec89dafdb3ada3f6f5d0e147ea0a4a1d4e0786cfc4f56ddb7da97b2a72091e
     port: 8091
     targetPort: 8091
   grcsoapws:
     enabled: true
     replicaCount: 3
     repository: accesshub/grcsoapws
-    digest: sha256:6d83d94aeaa2624501df407094bd32c0dfe8c96828c9b6e82663263d83973c26
+    digest: sha256:f7145e93d87a55efc9b1414cf6643b67b6a9bf7abf8921195f06783d891932bc
     port: 8090
     targetPort: 8090
 ingress:
@@ -118,8 +118,10 @@ ingress:
     alb.ingress.kubernetes.io/inbound-cidrs: 0.0.0.0/0
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/backend-protocol: HTTP
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:495711089104:certificate/fcfef919-bf02-4c47-9e75-b50e6800b3b6
     alb.ingress.kubernetes.io/success-codes: 200-399
+    alb.ingress.kubernetes.io/target-group-attributes: stickiness.enabled=true,stickiness.lb_cookie.duration_seconds=86400
   paths:
   - path: /accesshub
     pathType: Prefix
@@ -257,7 +259,7 @@ dbMigration:
   enabled: false
   image:
     repository: accesshub/db-migration
-    digest: sha256:707942b985c4c00cce109a45b1b118dc02a0103550db02d38bd2c4719b823301
+    digest: sha256:f44a42917bf65be98c96f0950aebee3317b0c01a5aa2590ce495541b03155c61
 healthAggregator:
   enabled: true
   replicaCount: 3
@@ -276,3 +278,4 @@ healthAggregator:
     path: /region-healthz
     pathType: Prefix
     healthCheckPath: /healthz
+    

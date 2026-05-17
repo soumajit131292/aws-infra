@@ -87,7 +87,7 @@ spec:
     # Format: <file-system-id>::<access-point-id>
     # This mounts via the Access Point, anchoring the mount root at the AP's
     # RootDirectory.Path. SubPaths in pod volumeMounts then resolve correctly.
-    volumeHandle: <REPLICA_EFS_ID>::<REPLICA_ACCESS_POINT_ID>
+    volumeHandle: fs-0aa6c05dce2215e3b::fsap-0262da5fc471c6315
   mountOptions:
     - tls
     # No "ro" here. The EFS storage layer enforces read-only during replication;

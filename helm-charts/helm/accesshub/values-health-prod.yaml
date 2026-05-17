@@ -14,9 +14,9 @@ ingress:
     alb.ingress.kubernetes.io/inbound-cidrs: 0.0.0.0/0
     alb.ingress.kubernetes.io/target-type: ip
     alb.ingress.kubernetes.io/backend-protocol: HTTP
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP":80}]'
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:eu-west-1:495711089104:certificate/fcfef919-bf02-4c47-9e75-b50e6800b3b6
     alb.ingress.kubernetes.io/success-codes: 200-399
-
 services:
   ahschedular:
     port: 8070

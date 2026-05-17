@@ -2,12 +2,13 @@
 {{- $dbSecretName := include "accesshub.dbSecretName" . -}}
 {{- $dbConfigMapName := include "accesshub.dbConfigMapName" . -}}
 {{- $runtimeSecretName := include "accesshub.runtimeSecretName" . -}}
+{{- $authFilesPersistence := default (dict) $root.Values.authFilesPersistence -}}
 {{- $logPvcEnabled := and $root.Values.persistentLogs.enabled (ne (default "" $root.Values.persistentLogs.claimName) "") -}}
 {{- $loginAuthPersistenceEnabled := and $root.Values.loginAuthSourcePersistence.enabled (ne (default "" $root.Values.loginAuthSourcePersistence.claimName) "") -}}
 {{- $targetAppResourcesPersistenceEnabled := and $root.Values.targetAppResourcesPersistence.enabled (ne (default "" $root.Values.targetAppResourcesPersistence.claimName) "") -}}
 {{- $schemaAssetsPersistenceEnabled := and $root.Values.schemaAssetsPersistence.enabled (ne (default "" $root.Values.schemaAssetsPersistence.claimName) "") -}}
 {{- $accesshubFilesPersistenceEnabled := and $root.Values.accesshubFilesPersistence.enabled (ne (default "" $root.Values.accesshubFilesPersistence.claimName) "") -}}
-{{- $authFilesPersistenceEnabled := and $root.Values.authFilesPersistence.enabled (ne (default "" $root.Values.authFilesPersistence.claimName) "") -}}
+{{- $authFilesPersistenceEnabled := and (default false $authFilesPersistence.enabled) (ne (default "" $authFilesPersistence.claimName) "") -}}
 {{- range $name, $svc := .Values.services }}
 {{- if eq (include "accesshub.deployService" (dict "enabled" $svc.enabled "digest" $svc.digest)) "true" }}
 {{- $logPvcExcluded := has $name ($root.Values.persistentLogs.excludedServices | default (list)) -}}
@@ -19,12 +20,12 @@
 {{- $mountSchemaAssetsPvc := and $schemaAssetsPersistenceEnabled (not $schemaExcluded) -}}
 {{- $accesshubFilesExcluded := has $name ($root.Values.accesshubFilesPersistence.excludedServices | default (list)) -}}
 {{- $mountAccesshubFilesPvc := and $accesshubFilesPersistenceEnabled (not $accesshubFilesExcluded) -}}
-{{- $authFilesExcluded := has $name ($root.Values.authFilesPersistence.excludedServices | default (list)) -}}
+{{- $authFilesExcluded := has $name ($authFilesPersistence.excludedServices | default (list)) -}}
 {{- $mountAuthFilesPvc := and $authFilesPersistenceEnabled (not $authFilesExcluded) -}}
 {{- $targetSubPath := default "" $root.Values.targetAppResourcesPersistence.subPath -}}
 {{- $schemaSubPath := default "" $root.Values.schemaAssetsPersistence.subPath -}}
 {{- $accesshubFilesSubPath := default "" $root.Values.accesshubFilesPersistence.subPath -}}
-{{- $authFilesSubPath := default "" $root.Values.authFilesPersistence.subPath -}}
+{{- $authFilesSubPath := default "" $authFilesPersistence.subPath -}}
 {{- $targetSubPathBase := trimSuffix "/" $targetSubPath -}}
 {{- $targetSubPathResolved := $name -}}
 {{- if ne $targetSubPathBase "" -}}
@@ -35,7 +36,7 @@
 {{- $targetClaim := default "" $root.Values.targetAppResourcesPersistence.claimName -}}
 {{- $schemaClaim := default "" $root.Values.schemaAssetsPersistence.claimName -}}
 {{- $accesshubFilesClaim := default "" $root.Values.accesshubFilesPersistence.claimName -}}
-{{- $authFilesClaim := default "" $root.Values.authFilesPersistence.claimName -}}
+{{- $authFilesClaim := default "" $authFilesPersistence.claimName -}}
 {{- $loginVolumeName := "login-auth-source" -}}
 {{- if and $mountLoginAuthPvc $mountLogPvc (eq $loginClaim $logClaim) -}}
 {{- $loginVolumeName = "shared-logs" -}}
@@ -370,7 +371,7 @@ spec:
             {{- end }}
             {{- if $mountAuthFilesPvc }}
             - name: {{ $authFilesVolumeName }}
-              mountPath: {{ $root.Values.authFilesPersistence.mountPath | quote }}
+              mountPath: {{ $authFilesPersistence.mountPath | quote }}
               {{- with $authFilesSubPath }}
               subPath: {{ . | quote }}
               {{- end }}
@@ -459,7 +460,7 @@ spec:
         {{- if and $mountAuthFilesPvc (ne $authFilesVolumeName "shared-logs") (ne $authFilesVolumeName "login-auth-source") (ne $authFilesVolumeName "target-app-resources") (ne $authFilesVolumeName "schema-assets") (ne $authFilesVolumeName "accesshub-files") }}
         - name: auth-files
           persistentVolumeClaim:
-            claimName: {{ $root.Values.authFilesPersistence.claimName | quote }}
+            claimName: {{ $authFilesPersistence.claimName | quote }}
         {{- end }}
       {{- end }}
 ---
