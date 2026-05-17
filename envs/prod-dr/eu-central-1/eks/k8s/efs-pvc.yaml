@@ -1,3 +1,98 @@
+# Prod-DR data EFS — static PV + PVC pattern.
+#
+# Why static (not StorageClass + dynamic PVC)?
+# ---------------------------------------------
+# The prod-dr EFS is a cross-region replica destination. While replication is
+# active, the filesystem is READ-ONLY at the storage layer. The EFS CSI driver's
+# dynamic provisioning (efs-ap mode) tries to create a new access point + write
+# its root directory on the EFS, which fails with EROFS on a read-only replica.
+# Static PV bypasses creation entirely — we just reference an Access Point that
+# already exists (created manually below) and let pods mount it.
+#
+# Why an Access Point (not the bare EFS root)?
+# ---------------------------------------------
+# Your prod EFS uses dynamic provisioning, so data sits under
+# /dynamic-provisioning/efs-ap-XXXX/ on the EFS. Replication mirrors that exact
+# path to prod-dr. The helm chart's volumeMount subPaths (targetappresources/,
+# schemaassets/common/, etc.) are RELATIVE TO the mount root. Mounting the bare
+# EFS root in prod-dr would look for /targetappresources/ at the EFS root — but
+# the data is at /dynamic-provisioning/efs-ap-XXXX/targetappresources/.
+# Mounting via a matching Access Point on the replica fixes this.
+#
+# accessModes: ReadWriteMany (not ReadOnlyMany)?
+# ----------------------------------------------
+# K8s accessModes is a HINT, not enforcement — it doesn't add `ro` to the mount.
+# The actual read-only behavior comes from the EFS storage layer while
+# replication is active. We mark this PV/PVC as RWX so that:
+#   - Before failover: mount is RW, but writes fail at EFS layer (correct).
+#   - After failover (replication deleted): EFS becomes writable, no K8s change
+#     needed — pods can write transparently.
+#
+# ────────────────────────────────────────────────────────────────────────────
+# ONE-TIME SETUP (run BEFORE applying this manifest)
+# ────────────────────────────────────────────────────────────────────────────
+#
+# 1) Get prod's Access Point details (we'll mirror them on the replica):
+#
+#    PROD_EFS_ID=$(cd ../../../../../prod/eu-west-1/eks && terraform output -raw efs_file_system_id)
+#    aws efs describe-access-points \
+#      --region eu-west-1 \
+#      --file-system-id $PROD_EFS_ID \
+#      --query 'AccessPoints[].[AccessPointId,RootDirectory.Path,PosixUser]' \
+#      --output table
+#    # Note RootDirectory.Path (e.g., "/dynamic-provisioning/efs-ap-XXX")
+#    # Note PosixUser Uid/Gid
+#
+# 2) Get the replica EFS ID:
+#
+#    REPLICA_EFS_ID=$(cd ../../../../../prod/eu-west-1/efs-replication && terraform output -raw destination_file_system_id)
+#    echo "Replica EFS: $REPLICA_EFS_ID"
+#
+# 3) Create a matching Access Point on the replica EFS. CRITICAL: do NOT pass
+#    CreationInfo — the path already exists via replication, so no write needed.
+#
+#    aws efs create-access-point \
+#      --region eu-central-1 \
+#      --file-system-id $REPLICA_EFS_ID \
+#      --posix-user 'Uid=1000,Gid=1000' \
+#      --root-directory 'Path=/dynamic-provisioning/efs-ap-XXX'
+#    # Replace path with the exact RootDirectory.Path from step 1.
+#    # Capture the AccessPointId returned (fsap-YYYYYYYY).
+#
+# 4) Fill in the placeholders below:
+#      <REPLICA_EFS_ID>           ← from step 2
+#      <REPLICA_ACCESS_POINT_ID>  ← from step 3
+#
+# 5) kubectl apply -f efs-pvc.yaml
+#
+# ────────────────────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: efs-data-pv
+  labels:
+    purpose: prod-dr-data-replica
+spec:
+  capacity:
+    storage: 5Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  # Empty string = no StorageClass = static binding only (disables dynamic provisioning)
+  storageClassName: ""
+  csi:
+    driver: efs.csi.aws.com
+    # Format: <file-system-id>::<access-point-id>
+    # This mounts via the Access Point, anchoring the mount root at the AP's
+    # RootDirectory.Path. SubPaths in pod volumeMounts then resolve correctly.
+    volumeHandle: <REPLICA_EFS_ID>::<REPLICA_ACCESS_POINT_ID>
+  mountOptions:
+    - tls
+    # No "ro" here. The EFS storage layer enforces read-only during replication;
+    # K8s mount stays RW so failover transition needs no manifest changes.
+---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
@@ -6,7 +101,10 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: efs-sc
+  # Empty string forces this PVC to bind to an existing PV (no dynamic provisioning).
+  storageClassName: ""
+  # Explicit binding to the static PV defined above.
+  volumeName: efs-data-pv
   resources:
     requests:
       storage: 5Gi
