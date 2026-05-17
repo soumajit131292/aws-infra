@@ -49,7 +49,7 @@ resource "aws_kms_alias" "dr_efs" {
 ## Replication primitive     ##
 ###############################
 module "efs_replication" {
-  source = "../../../../../modules/efs-replication"
+  source = "../../../../modules/efs-replication"
 
   source_file_system_id   = local.source_efs_id
   destination_region      = var.destination_region
