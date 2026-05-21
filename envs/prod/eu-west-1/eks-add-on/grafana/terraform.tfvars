@@ -71,4 +71,5 @@ grafana_ingress_annotations = {
   "alb.ingress.kubernetes.io/target-type"      = "ip"
   "alb.ingress.kubernetes.io/certificate-arn"  = "arn:aws:acm:eu-west-1:495711089104:certificate/fcfef919-bf02-4c47-9e75-b50e6800b3b6"
   "alb.ingress.kubernetes.io/load-balancer-attributes" = "access_logs.s3.enabled=true,access_logs.s3.bucket=prod-accesshub-alb-access-logs-495711089104-eu-west-1,access_logs.s3.prefix=alb/accesshub,deletion_protection.enabled=true"
+  "alb.ingress.kubernetes.io/ssl-policy" = "ELBSecurityPolicy-TLS13-1-2-2021-06"
 }
