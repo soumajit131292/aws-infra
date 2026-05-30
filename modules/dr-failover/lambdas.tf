@@ -44,15 +44,6 @@ locals {
         POLL_TIMEOUT_SECONDS = "180"
       }
     }
-    private_dns_update = {
-      timeout = 60
-      env = {
-        DR_PRIVATE_HOSTED_ZONE_ID = var.dr_private_hosted_zone_id
-        RDS_ACTIVE_RECORD_NAME    = var.rds_active_record_name
-        RDS_DR_RECORD_NAME        = var.rds_dr_record_name
-        RECORD_TTL                = tostring(var.record_ttl)
-      }
-    }
     eks_scale = {
       timeout = 600
       env = {
@@ -159,16 +150,6 @@ locals {
           "elasticfilesystem:DeleteReplicationConfiguration",
           "elasticfilesystem:DescribeReplicationConfigurations",
           "elasticfilesystem:DescribeFileSystems",
-        ]
-        Resource = "*"
-      }
-    ]
-    private_dns_update = [
-      {
-        Effect = "Allow"
-        Action = [
-          "route53:ChangeResourceRecordSets",
-          "route53:GetChange",
         ]
         Resource = "*"
       }

@@ -80,22 +80,6 @@ variable "dr_private_hosted_zone_id" {
   type        = string
 }
 
-variable "rds_active_record_name" {
-  description = "The app-facing DB CNAME (e.g., db.accesshub.internal)."
-  type        = string
-}
-
-variable "rds_dr_record_name" {
-  description = "The DR sub-record (e.g., db-dr.accesshub.internal) the active record gets flipped to."
-  type        = string
-}
-
-variable "record_ttl" {
-  description = "TTL on the rds_active CNAME flip."
-  type        = number
-  default     = 60
-}
-
 variable "public_health_check_url" {
   description = "Full URL hit by post-failover validation (e.g., https://prod-aws.accesshub-identity.com/health)."
   type        = string
