@@ -53,6 +53,9 @@ def lambda_handler(event, context):
 
     if not token:
         return _resp(400, _html("Bad request", "Missing token.", ok=False))
+    # Query-string parsing can decode '+' as space, which breaks Step Functions
+    # task tokens. Task tokens are base64-like and do not contain literal spaces.
+    token = token.replace(" ", "+")
     if action not in ("approve", "deny"):
         return _resp(400, _html("Bad request", "action must be approve or deny.", ok=False))
 
