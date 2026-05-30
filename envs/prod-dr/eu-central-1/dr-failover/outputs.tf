@@ -32,3 +32,22 @@ output "argocd_webhook_url" {
   description = "URL ArgoCD Notifications POSTs to when a sync starts / completes."
   value       = module.dr_failover.argocd_webhook_url
 }
+output "dashboard_name" {
+  description = "CloudWatch dashboard aggregating all DR signals."
+  value       = module.dr_failover.dashboard_name
+}
+
+output "dashboard_url" {
+  description = "Direct URL to the DR overview dashboard."
+  value       = module.dr_failover.dashboard_url
+}
+
+output "composite_alarm_replication_arn" {
+  description = "P1 composite alarm: Aurora AND EFS replication lag together."
+  value       = module.dr_failover.composite_alarm_replication_arn
+}
+
+output "trigger_command_example_dry_run" {
+  description = "Copy-paste this to start a safe dry-run failover."
+  value       = module.dr_failover.trigger_command_example_dry_run
+}

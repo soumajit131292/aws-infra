@@ -24,7 +24,7 @@
 #############################################
 resource "aws_sns_topic" "dr_alerts" {
   name = "${var.name_prefix}-dr-alerts"
-  tags = merge(var.tags, { Purpose = "DR detection alerts (eu-central-1)" })
+  tags = merge(var.tags, { Purpose = "DR detection alerts eu-central-1" })
 }
 
 resource "aws_sns_topic_subscription" "alerts_email" {
@@ -41,7 +41,7 @@ resource "aws_sns_topic" "dr_alerts_source" {
   provider = aws.source
 
   name = "${var.name_prefix}-dr-alerts"
-  tags = merge(var.tags, { Purpose = "DR detection alerts (eu-west-1)" })
+  tags = merge(var.tags, { Purpose = "DR detection alerts eu-west-1" })
 }
 
 resource "aws_sns_topic_subscription" "alerts_email_source" {
@@ -60,7 +60,7 @@ resource "aws_sns_topic" "dr_alerts_us_east_1" {
   provider = aws.us_east_1
 
   name = "${var.name_prefix}-dr-alerts"
-  tags = merge(var.tags, { Purpose = "DR detection alerts (us-east-1, for Route 53 metrics)" })
+  tags = merge(var.tags, { Purpose = "DR detection alerts us-east-1 for Route53 metrics" })
 }
 
 resource "aws_sns_topic_subscription" "alerts_email_us_east_1" {

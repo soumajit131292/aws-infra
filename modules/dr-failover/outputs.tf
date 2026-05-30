@@ -116,10 +116,10 @@ output "trigger_command_example" {
 output "trigger_command_example_dry_run" {
   description = "Example AWS CLI command to start a DRY-RUN execution. Exercises the full state machine, sends approval email, but does NOT promote Aurora / delete EFS replication / flip DNS / scale EKS. Safe to run monthly in production."
   value       = <<-EOT
-    aws stepfunctions start-execution \\
-      --region ${var.dr_region} \\
-      --state-machine-arn ${aws_sfn_state_machine.dr_failover.arn} \\
-      --name "dr-dryrun-$(date +%Y%m%d-%H%M%S)" \\
+    aws stepfunctions start-execution \
+      --region ${var.dr_region} \
+      --state-machine-arn ${aws_sfn_state_machine.dr_failover.arn} \
+      --name "dr-dryrun-$(date +%Y%m%d-%H%M%S)" \
       --input '{"mode":"managed","dry_run":true,"target_node_desired":${var.target_node_desired},"target_replicas":${var.target_app_replicas}}'
   EOT
 }

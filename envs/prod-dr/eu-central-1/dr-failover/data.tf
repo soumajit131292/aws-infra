@@ -55,7 +55,7 @@ data "terraform_remote_state" "prod_dr_route53" {
   backend = "s3"
   config = {
     bucket = "crave-infra-terraform-state-bucket"
-    key    = "route53/prod-dr/eu-central-1/accesshub/terraform.tfstate"
+    key    = "dns/prod-dr/eu-central-1/route53-accesshub/terraform.tfstate"
     region = "us-east-1"
   }
 }
@@ -68,4 +68,13 @@ data "terraform_remote_state" "efs_replication" {
     key    = "efs/prod/eu-west-1/replication/terraform.tfstate"
     region = "us-east-1"
   }
+}
+
+# Shared secrets from Secrets Manager (eu-central-1 / default provider).
+data "aws_secretsmanager_secret_version" "approval_shared_secret" {
+  secret_id = var.approval_shared_secret_arn
+}
+
+data "aws_secretsmanager_secret_version" "argocd_webhook_secret" {
+  secret_id = var.argocd_webhook_secret_arn
 }

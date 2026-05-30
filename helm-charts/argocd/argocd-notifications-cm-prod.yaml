@@ -1,10 +1,8 @@
 # ArgoCD Notifications ConfigMap — wires sync events to the dr-failover
 # alarm-actions-controller Lambda.
 #
-# Generic template.
-# Apply one of the env-specific files instead:
+# Apply to the prod ArgoCD namespace:
 #   kubectl -n argocd apply -f argocd-notifications-cm-prod.yaml
-#   kubectl -n argocd apply -f argocd-notifications-cm-prod-dr.yaml
 #
 # After applying, annotate each accesshub Application to subscribe it to
 # these notifications. Example annotation block on an Application manifest:
@@ -22,7 +20,8 @@
 #   secret -> var.argocd_webhook_secret
 #
 # IMPORTANT:
-#   This template uses placeholders. Do not apply as-is.
+#   This prod ArgoCD is intentionally wired to the DR failover webhook so
+#   prod sync events can suppress DR failover alarms during deployments.
 #
 # ───────────────────────────────────────────────────────────────────────────
 
@@ -35,12 +34,12 @@ data:
 
   # ─── Service: HTTPS webhook to the Lambda via API Gateway ──────────────
   service.webhook.cloudwatch-control: |
-    url: ENV_FAILOVER_ARGOCD_WEBHOOK_URL
+    url: https://nw5c4dcfd2.execute-api.eu-central-1.amazonaws.com/argocd-webhook
     headers:
       - name: Content-Type
         value: application/json
       - name: X-Webhook-Signature
-        value: $hmac-sha256(payload, 'ENV_FAILOVER_ARGOCD_WEBHOOK_SECRET')
+        value: $hmac-sha256(payload, 'DR_FAILOVER_ARGOCD_WEBHOOK_SECRET')
 
   # ─── Templates: the payload sent to the webhook for each event ─────────
   template.alarm-suppress: |

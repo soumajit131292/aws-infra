@@ -20,7 +20,7 @@ alb_5xx_threshold                   = 50
 aurora_replication_lag_threshold_ms = 60000
 aurora_min_connections              = 1
 aurora_db_load_threshold            = 4
-efs_replication_lag_threshold_sec   = 600
+efs_replication_lag_threshold_sec   = 1200
 
 # Phase 1 — Window (N periods) and M-of-N (datapoints_to_alarm) per alarm.
 # Larger windows + M < N = more tolerant to deployment-window flapping.
@@ -59,20 +59,20 @@ target_node_max     = 5
 target_app_replicas = 3
 
 # Approval gate (1 hour timeout, must approve via SNS link)
-# IMPORTANT: rotate this periodically and update SNS subscribers.
-approval_shared_secret   = "CHANGEME-32-char-random-string-here-XXXXXX"
-approval_timeout_seconds = 3600
+# Shared secret is sourced from Secrets Manager.
+approval_shared_secret_arn = "arn:aws:secretsmanager:eu-central-1:495711089104:secret:prod-dr/dr-failover/approval-shared-secret-Uij7Pl"
+approval_timeout_seconds   = 3600
 
 # Phase 2 — alarm suppression during ArgoCD deployments
 # Same value goes into the ArgoCD Notifications ConfigMap as $hmac-shared-secret.
-# Rotate together. Leave empty to disable signature verification (NOT recommended).
-argocd_webhook_secret             = "CHANGEME-32-char-random-string-for-webhook"
+# Secret value is sourced from Secrets Manager.
+argocd_webhook_secret_arn         = "arn:aws:secretsmanager:eu-central-1:495711089104:secret:prod-dr/dr-failover/argocd-webhook-secret-2vPxZs"
 alarm_suppression_max_age_seconds = 2700 # 45 min — should exceed your longest deploy
 
 # Notification subscribers — email-only.
-# Add your 2 email addresses below.
 alert_email_subscribers = [
-  "oncall@accesshub.example",
+  "Anil.Meher@craveinfotech.com",
+  "soumajit.roy@craveinfotech.com",
 ]
 
 # GitHub PAT for replica scaling — secret must exist before apply.
@@ -81,8 +81,7 @@ alert_email_subscribers = [
 #     --region eu-central-1 \
 #     --name prod-dr/dr-failover/github-pat \
 #     --secret-string '{"token":"ghp_xxxxxxxxxxxx"}'
-# Then paste the resulting ARN here.
-github_pat_secret_arn = "arn:aws:secretsmanager:eu-central-1:495711089104:secret:prod-dr/dr-failover/github-pat-XXXXXX"
+github_pat_secret_arn = "arn:aws:secretsmanager:eu-central-1:495711089104:secret:prod-dr/dr-failover/github-pat-ioyumA"
 
 github_owner       = "soumajit131292"
 github_repo        = "aws-infra"

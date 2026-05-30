@@ -3,6 +3,10 @@ kind: Application
 metadata:
   name: accesshub-prod-dr-tenant-bootstrap
   namespace: argocd
+  annotations:
+    notifications.argoproj.io/subscribe.on-sync-running.cloudwatch-control: ""
+    notifications.argoproj.io/subscribe.on-deployed.cloudwatch-control: ""
+    notifications.argoproj.io/subscribe.on-sync-failed.cloudwatch-control: ""
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:

@@ -168,11 +168,9 @@ variable "target_app_replicas" {
 }
 
 # Phase 2: alarm suppression
-variable "argocd_webhook_secret" {
-  description = "HMAC shared secret for ArgoCD -> webhook signature verification."
+variable "argocd_webhook_secret_arn" {
+  description = "Secrets Manager ARN containing the HMAC shared secret for ArgoCD -> webhook signature verification."
   type        = string
-  sensitive   = true
-  default     = ""
 }
 
 variable "alarm_suppression_max_age_seconds" {
@@ -182,9 +180,9 @@ variable "alarm_suppression_max_age_seconds" {
 }
 
 # Approval gate
-variable "approval_shared_secret" {
-  type      = string
-  sensitive = true
+variable "approval_shared_secret_arn" {
+  description = "Secrets Manager ARN containing the shared secret used by the approval callback."
+  type        = string
 }
 
 variable "approval_timeout_seconds" {

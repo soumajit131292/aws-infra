@@ -194,37 +194,10 @@ locals {
             Next        = "FailureNotification"
           }
         ]
-        Next = "UpdatePrivateDNS"
-      }
-
-      # ─── Step 5 ───────────────────────────────────────────────────────────
-      UpdatePrivateDNS = {
-        Type     = "Task"
-        Resource = "arn:aws:states:::lambda:invoke"
-        Parameters = {
-          FunctionName = local.lambda_arn["private_dns_update"]
-          Payload      = { "dry_run.$" = "$.dry_run" }
-        }
-        ResultPath = "$.dns"
-        Retry = [
-          {
-            ErrorEquals     = ["States.TaskFailed"]
-            IntervalSeconds = 5
-            MaxAttempts     = 2
-            BackoffRate     = 2.0
-          }
-        ]
-        Catch = [
-          {
-            ErrorEquals = ["States.ALL"]
-            ResultPath  = "$.error"
-            Next        = "FailureNotification"
-          }
-        ]
         Next = "ScaleEKS"
       }
 
-      # ─── Step 6 ───────────────────────────────────────────────────────────
+      # ─── Step 5 ───────────────────────────────────────────────────────────
       ScaleEKS = {
         Type     = "Task"
         Resource = "arn:aws:states:::lambda:invoke"
@@ -309,7 +282,7 @@ locals {
         Parameters = {
           TopicArn    = aws_sns_topic.dr_complete.arn
           Subject     = "DR FAILOVER COMPLETE — AccessHub is now active in prod-dr"
-          "Message.$" = "States.Format('DR failover completed successfully.\n\nAurora: {}\nEFS: {}\nDNS: {}\nEKS: {}\nValidation: {}', States.JsonToString($.aurora.Payload), States.JsonToString($.efs.Payload), States.JsonToString($.dns.Payload), States.JsonToString($.eks.Payload), States.JsonToString($.validation.Payload))"
+          "Message.$" = "States.Format('DR failover completed successfully.\n\nAurora: {}\nEFS: {}\nEKS: {}\nValidation: {}', States.JsonToString($.aurora.Payload), States.JsonToString($.efs.Payload), States.JsonToString($.eks.Payload), States.JsonToString($.validation.Payload))"
         }
         End = true
       }
