@@ -88,11 +88,6 @@ github_repo        = "aws-infra"
 github_branch      = "main"
 github_values_path = "helm-charts/helm/accesshub/values-prod-dr.yaml"
 
-# Private DNS record names — MUST match what's in route53-accesshub tfvars.
-rds_active_record_name = "db.accesshub.internal"
-rds_dr_record_name     = "db-dr.accesshub.internal"
-record_ttl             = 60
-
 tags = {
   Environment = "prod-dr"
   Project     = "crave"

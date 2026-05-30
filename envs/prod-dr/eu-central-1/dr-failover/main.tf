@@ -26,11 +26,8 @@ module "dr_failover" {
   target_node_max       = var.target_node_max
   target_app_replicas   = var.target_app_replicas
 
-  # Private DNS
+  # Private DNS (preflight reads this; no longer used for DNS flipping)
   dr_private_hosted_zone_id = data.terraform_remote_state.prod_dr_route53.outputs.hosted_zone_id
-  rds_active_record_name    = var.rds_active_record_name
-  rds_dr_record_name        = var.rds_dr_record_name
-  record_ttl                = var.record_ttl
 
   # Public health check + validation
   public_health_check_endpoint = var.public_health_check_endpoint

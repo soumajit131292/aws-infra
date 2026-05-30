@@ -223,22 +223,6 @@ variable "github_values_path" {
   default = "helm-charts/helm/accesshub/values-prod-dr.yaml"
 }
 
-# Private DNS — record names (must match what's in route53-accesshub tfvars)
-variable "rds_active_record_name" {
-  type    = string
-  default = "db.accesshub.internal"
-}
-
-variable "rds_dr_record_name" {
-  type    = string
-  default = "db-dr.accesshub.internal"
-}
-
-variable "record_ttl" {
-  type    = number
-  default = 60
-}
-
 variable "tags" {
   type = map(string)
   default = {
