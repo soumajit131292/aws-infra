@@ -1,0 +1,102 @@
+# ArgoCD Notifications ConfigMap — wires sync events to the dr-failover
+# alarm-actions-controller Lambda.
+#
+# Apply to the argocd namespace:
+#   kubectl -n argocd apply -f argocd-notifications-cm.yaml
+#
+# After applying, annotate each accesshub Application to subscribe it to
+# these notifications. Example annotation block on an Application manifest:
+#
+#   metadata:
+#     annotations:
+#       notifications.argoproj.io/subscribe.on-sync-running.cloudwatch-control: ""
+#       notifications.argoproj.io/subscribe.on-deployed.cloudwatch-control: ""
+#       notifications.argoproj.io/subscribe.on-sync-failed.cloudwatch-control: ""
+#
+# Empty value means "subscribe with no recipient filter".
+#
+# Webhook URL + shared secret are populated by Terraform output and tfvar:
+#   url    -> module.dr_failover.argocd_webhook_url
+#   secret -> var.argocd_webhook_secret
+#
+# IMPORTANT: replace the <PLACEHOLDER> values below before applying.
+#
+# ───────────────────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: argocd-notifications-cm
+  namespace: argocd
+data:
+
+  # ─── Service: HTTPS webhook to the Lambda via API Gateway ──────────────
+  service.webhook.cloudwatch-control: |
+    url: <PLACEHOLDER_WEBHOOK_URL>
+    headers:
+      - name: Content-Type
+        value: application/json
+      - name: X-Webhook-Signature
+        value: $hmac-sha256(payload, '<PLACEHOLDER_SHARED_SECRET>')
+
+  # ─── Templates: the payload sent to the webhook for each event ─────────
+  template.alarm-suppress: |
+    webhook:
+      cloudwatch-control:
+        method: POST
+        body: |
+          {
+            "event": "sync-started",
+            "application": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}",
+            "revision": "{{.app.status.operationState.operation.sync.revision}}",
+            "startedAt": "{{.app.status.operationState.startedAt}}"
+          }
+
+  template.alarm-resume: |
+    webhook:
+      cloudwatch-control:
+        method: POST
+        body: |
+          {
+            "event": "deployed",
+            "application": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}",
+            "revision": "{{.app.status.sync.revision}}",
+            "syncStatus": "{{.app.status.sync.status}}",
+            "healthStatus": "{{.app.status.health.status}}"
+          }
+
+  template.alarm-resume-failed: |
+    webhook:
+      cloudwatch-control:
+        method: POST
+        body: |
+          {
+            "event": "sync-failed",
+            "application": "{{.app.metadata.name}}",
+            "namespace": "{{.app.metadata.namespace}}",
+            "message": "{{.app.status.operationState.message}}"
+          }
+
+  # ─── Triggers: when to fire each template ──────────────────────────────
+  trigger.on-sync-running: |
+    - description: Fires when an ArgoCD Application enters Running sync phase
+      when: app.status.operationState != nil and app.status.operationState.phase in ['Running']
+      oncePer: app.status.operationState.startedAt
+      send:
+        - alarm-suppress
+
+  trigger.on-deployed: |
+    - description: Fires once an Application is fully Synced AND Healthy
+      when: app.status.sync.status == 'Synced' and app.status.health.status == 'Healthy' and (app.status.operationState != nil and app.status.operationState.phase in ['Succeeded'])
+      oncePer: app.status.operationState.finishedAt
+      send:
+        - alarm-resume
+
+  trigger.on-sync-failed: |
+    - description: Sync errored or terminated; re-enable alarms (do not stay suppressed)
+      when: app.status.operationState != nil and app.status.operationState.phase in ['Error', 'Failed']
+      oncePer: app.status.operationState.finishedAt
+      send:
+        - alarm-resume-failed
