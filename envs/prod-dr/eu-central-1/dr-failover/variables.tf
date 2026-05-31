@@ -179,6 +179,12 @@ variable "alarm_suppression_max_age_seconds" {
   default     = 2700
 }
 
+variable "alarm_suppression_min_hold_seconds" {
+  description = "Minimum suppression window after sync-started, even if deployed arrives sooner."
+  type        = number
+  default     = 900
+}
+
 # Approval gate
 variable "approval_shared_secret_arn" {
   description = "Secrets Manager ARN containing the shared secret used by the approval callback."

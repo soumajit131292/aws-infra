@@ -137,6 +137,7 @@ resource "aws_lambda_function" "alarm_actions_controller" {
       ALARM_INVENTORY       = jsonencode(local.alarm_inventory)
       STATE_TABLE_NAME      = aws_dynamodb_table.alarm_suppression_state.name
       WEBHOOK_SHARED_SECRET = var.argocd_webhook_secret
+      MIN_SUPPRESSION_SEC   = tostring(var.alarm_suppression_min_hold_seconds)
       MAX_DISABLED_AGE_SEC  = tostring(var.alarm_suppression_max_age_seconds)
     }
   }

@@ -292,6 +292,12 @@ variable "alarm_suppression_max_age_seconds" {
   default     = 2700 # 45 min
 }
 
+variable "alarm_suppression_min_hold_seconds" {
+  description = "Minimum time to keep alarm actions disabled after sync-started, even if deployed arrives earlier."
+  type        = number
+  default     = 900 # 15 min
+}
+
 ###############################
 # Approval gate
 ###############################

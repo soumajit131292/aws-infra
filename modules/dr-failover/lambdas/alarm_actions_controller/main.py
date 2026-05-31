@@ -37,6 +37,7 @@ import hmac
 import json
 import os
 import time
+import base64
 from typing import Tuple
 
 import boto3
@@ -59,12 +60,41 @@ def _resp(status: int, body) -> dict:
 
 
 def _hmac_ok(payload_bytes: bytes, provided: str) -> bool:
-    """Compare HMAC-SHA256 in constant time."""
-    secret = os.environ.get("WEBHOOK_SHARED_SECRET", "").encode("utf-8")
-    if not secret:
+    """Authenticate webhook using either shared token or HMAC variants."""
+    secret_str = os.environ.get("WEBHOOK_SHARED_SECRET", "")
+    secret = secret_str.encode("utf-8")
+    if not secret_str:
         return True  # signing not configured
-    expected = hmac.new(secret, payload_bytes, hashlib.sha256).hexdigest()
-    return hmac.compare_digest(expected, (provided or "").strip())
+    digest = hmac.new(secret, payload_bytes, hashlib.sha256).digest()
+    expected_hex = digest.hex()
+    expected_b64 = base64.b64encode(digest).decode("utf-8")
+
+    raw = (provided or "").strip().strip('"').strip("'")
+
+    # Accept common header variants:
+    # - "<hex>"
+    # - "sha256=<hex>"
+    # - "<base64>"
+    # - "sha256=<base64>"
+    # - "t=...,v1=<sig>" (Stripe-like multi-part)
+    candidates = [raw]
+    for part in raw.split(","):
+        p = part.strip().strip('"').strip("'")
+        if "=" in p:
+            candidates.append(p.split("=", 1)[1].strip())
+        candidates.append(p)
+
+    for c in candidates:
+        if c.lower().startswith("sha256="):
+            c = c.split("=", 1)[1].strip()
+        # Fast path: header carries the shared secret token directly.
+        if hmac.compare_digest(secret_str, c):
+            return True
+        if hmac.compare_digest(expected_hex, c):
+            return True
+        if hmac.compare_digest(expected_b64, c):
+            return True
+    return False
 
 
 def _disable_alarm_actions(inventory: dict, dry_run: bool = False) -> dict:
@@ -109,12 +139,18 @@ def _put_state(table, app_name: str, ttl_seconds: int):
         "state": "disabled",
         "application": app_name,
         "disabled_at": _now(),
+        "deployed_reported": False,
         "ttl": _now() + ttl_seconds,
     })
 
 
 def _delete_state(table):
     table.delete_item(Key={"id": _STATE_ROW_ID})
+
+
+def _mark_deployed_reported(table, state: dict):
+    state["deployed_reported"] = True
+    table.put_item(Item=state)
 
 
 def _read_state(table) -> dict:
@@ -145,14 +181,22 @@ def _parse_payload(event: dict) -> Tuple[str, str, bytes]:
 def _handle_webhook(event: dict, inventory: dict, table) -> dict:
     """Handle an ArgoCD webhook event."""
     event_type, application, body_bytes = _parse_payload(event)
+    print(f"[alarm-actions] parsed webhook payload event={event_type or '<empty>'} application={application}")
 
     # Verify HMAC if configured
     headers = {k.lower(): v for k, v in (event.get("headers") or {}).items()}
-    if not _hmac_ok(body_bytes, headers.get("x-webhook-signature", "")):
+    sig_header = headers.get("x-webhook-signature", "")
+    preview = sig_header[:24] + ("..." if len(sig_header) > 24 else "")
+    print(f"[alarm-actions] signature header present={bool(sig_header)} len={len(sig_header)} preview={preview}")
+    sig_ok = _hmac_ok(body_bytes, sig_header)
+    if not sig_ok:
+        print("[alarm-actions] rejecting webhook: invalid signature")
         return _resp(403, {"error": "invalid_signature"})
 
-    if event_type == "sync-started":
+    # Be tolerant to naming variants from notification templates.
+    if event_type in ("sync-started", "sync-running", "on-sync-running"):
         max_age = int(os.environ.get("MAX_DISABLED_AGE_SEC", "2700"))
+        print(f"[alarm-actions] disabling alarm actions for app={application}")
         result = _disable_alarm_actions(inventory)
         _put_state(table, application, ttl_seconds=max_age)
         return _resp(200, {
@@ -162,6 +206,21 @@ def _handle_webhook(event: dict, inventory: dict, table) -> dict:
         })
 
     if event_type in ("deployed", "sync-succeeded", "sync-failed"):
+        min_hold = int(os.environ.get("MIN_SUPPRESSION_SEC", "900"))
+        state = _read_state(table)
+        if state:
+            age = _now() - int(state.get("disabled_at", 0))
+            if age < min_hold:
+                _mark_deployed_reported(table, state)
+                remaining = min_hold - age
+                print(f"[alarm-actions] keeping alarms disabled: min suppression hold not met, remaining={remaining}s")
+                return _resp(200, {
+                    "status": "hold_active",
+                    "application": application,
+                    "event": event_type,
+                    "remaining_seconds": remaining,
+                })
+        print(f"[alarm-actions] enabling alarm actions for app={application} due to event={event_type}")
         result = _enable_alarm_actions(inventory)
         _delete_state(table)
         return _resp(200, {
@@ -171,12 +230,14 @@ def _handle_webhook(event: dict, inventory: dict, table) -> dict:
             "result": result,
         })
 
+    print(f"[alarm-actions] rejecting webhook: unsupported event '{event_type}'")
     return _resp(400, {"error": f"unsupported event '{event_type}'"})
 
 
 def _handle_failsafe(inventory: dict, table) -> dict:
     """EventBridge scheduled invocation — force-enable if stuck disabled too long."""
     state = _read_state(table)
+    min_hold = int(os.environ.get("MIN_SUPPRESSION_SEC", "900"))
     max_age = int(os.environ.get("MAX_DISABLED_AGE_SEC", "2700"))
 
     if not state:
@@ -185,6 +246,17 @@ def _handle_failsafe(inventory: dict, table) -> dict:
 
     disabled_at = int(state.get("disabled_at", 0))
     age = _now() - disabled_at
+    if state.get("deployed_reported") and age >= min_hold:
+        result = _enable_alarm_actions(inventory)
+        _delete_state(table)
+        return {
+            "status": "enabled_after_min_hold",
+            "age_seconds": age,
+            "min_hold_seconds": min_hold,
+            "application": state.get("application"),
+            "result": result,
+        }
+
     if age < max_age:
         return {
             "status": "still_within_window",

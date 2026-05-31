@@ -19,6 +19,10 @@
 #   url    -> module.dr_failover.argocd_webhook_url
 #   secret -> var.argocd_webhook_secret
 #
+# ArgoCD Notifications must read the same secret from
+# argocd-notifications-secret using key:
+#   dr-failover-argocd-webhook-secret
+#
 # IMPORTANT:
 #   This prod ArgoCD is intentionally wired to the DR failover webhook so
 #   prod sync events can suppress DR failover alarms during deployments.
@@ -39,7 +43,7 @@ data:
       - name: Content-Type
         value: application/json
       - name: X-Webhook-Signature
-        value: $hmac-sha256(payload, 'DR_FAILOVER_ARGOCD_WEBHOOK_SECRET')
+        value: $dr-failover-argocd-webhook-secret
 
   # ─── Templates: the payload sent to the webhook for each event ─────────
   template.alarm-suppress: |
@@ -83,8 +87,8 @@ data:
 
   # ─── Triggers: when to fire each template ──────────────────────────────
   trigger.on-sync-running: |
-    - description: Fires when an ArgoCD Application enters Running sync phase
-      when: app.status.operationState != nil and app.status.operationState.phase in ['Running']
+    - description: Fires when an ArgoCD Application has an active sync operation
+      when: app.status.operationState != nil and app.status.operationState.finishedAt == nil and app.status.operationState.operation != nil
       oncePer: app.status.operationState.startedAt
       send:
         - alarm-suppress
