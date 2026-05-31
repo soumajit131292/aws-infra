@@ -221,13 +221,13 @@ In the prod EKS cluster:
 
 ```bash
 kubectl config use-context arn:aws:eks:eu-west-1:495711089104:cluster/<your-prod-cluster>
-argocd app sync accesshub --force
+argocd app sync accesshub-prod --force
 ```
 
 In a separate terminal:
 
 ```bash
-aws logs tail "/aws/lambda/${NAME_PREFIX}-alarm_actions_controller" \
+aws logs tail "/aws/lambda/${NAME_PREFIX}-alarm-actions-controller" \
   --region $DR_REGION --follow
 ```
 
@@ -255,7 +255,21 @@ aws dynamodb scan --region $DR_REGION \
   --output table
 ```
 
-During active sync: one item with `app=accesshub`, `state=deploying`.
+### 3.4 Check Metric suppression status
+```bash
+export NAME_PREFIX="prod-dr-failover"
+
+for r in eu-west-1 eu-central-1 us-east-1; do
+  echo "===== $r metric alarms ====="
+  aws cloudwatch describe-alarms \
+    --region "$r" \
+    --alarm-name-prefix "$NAME_PREFIX" \
+    --query 'MetricAlarms[*].[AlarmName,ActionsEnabled,StateValue]' \
+    --output table
+done
+```
+
+During active sync: one item with `app=accesshub-prod`, `state=deploying`.
 After sync: cleared (or TTL-expires within 45 min).
 
 ---
@@ -346,16 +360,16 @@ aws efs describe-replication-configurations --region $SRC_REGION \
   --output table
 
 # DR EKS still warm-standby (desiredSize=0)
-aws eks describe-nodegroup --region $DR_REGION \
-  --cluster-name <your-prod-dr-eks-cluster> \
-  --nodegroup-name core-ng \
-  --query 'nodegroup.scalingConfig.{desired:desiredSize, max:maxSize}'
+export DR_EKS_CLUSTER_NAME="prod-dr-accesshub-cluster"
+aws eks list-nodegroups --region "$DR_REGION" --cluster-name "$DR_EKS_CLUSTER_NAME" --output table
 
-# Private DNS unchanged
-aws route53 list-resource-record-sets \
-  --hosted-zone-id <prod-dr-private-zone-id> \
-  --query 'ResourceRecordSets[?Name==`db.accesshub.internal.`]'
-```
+export DR_NODEGROUP_NAME="core-ng"   # replace if output shows different name
+aws eks describe-nodegroup --region "$DR_REGION" \
+  --cluster-name "$DR_EKS_CLUSTER_NAME" \
+  --nodegroup-name "$DR_NODEGROUP_NAME" \
+  --query 'nodegroup.scalingConfig.{desired:desiredSize,max:maxSize,min:minSize}' \
+  --output table
+
 
 **All 4 must be unchanged.** Combined with both emails received and
 execution `SUCCEEDED`, this proves the DR pipeline works end-to-end.

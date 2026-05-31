@@ -21,7 +21,7 @@ locals {
         DR_EFS_ID                 = var.dr_efs_id
         DR_EKS_CLUSTER_NAME       = var.dr_eks_cluster_name
         DR_PRIVATE_HOSTED_ZONE_ID = var.dr_private_hosted_zone_id
-        MAX_REPLICATION_LAG_SEC   = "60"
+        MAX_REPLICATION_LAG_SEC   = "1200"
       }
     }
     aurora_failover = {

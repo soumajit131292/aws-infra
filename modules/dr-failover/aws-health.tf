@@ -56,17 +56,27 @@ resource "aws_sns_topic_policy" "dr_alerts_source_eventbridge" {
   arn = aws_sns_topic.dr_alerts_source.arn
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "events.amazonaws.com" }
-      Action    = "sns:Publish"
-      Resource  = aws_sns_topic.dr_alerts_source.arn
-      Condition = {
-        ArnEquals = {
-          "aws:SourceArn" = aws_cloudwatch_event_rule.aws_health_source.arn
+    Statement = [
+      {
+        Sid       = "AllowEventBridgePublishSourceHealth"
+        Effect    = "Allow"
+        Principal = { Service = "events.amazonaws.com" }
+        Action    = "sns:Publish"
+        Resource  = aws_sns_topic.dr_alerts_source.arn
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" = aws_cloudwatch_event_rule.aws_health_source.arn
+          }
         }
-      }
-    }]
+      },
+      {
+        Sid       = "AllowCloudWatchAlarmsPublishSource"
+        Effect    = "Allow"
+        Principal = { Service = "cloudwatch.amazonaws.com" }
+        Action    = "sns:Publish"
+        Resource  = aws_sns_topic.dr_alerts_source.arn
+      },
+    ]
   })
 }
 
@@ -103,16 +113,43 @@ resource "aws_sns_topic_policy" "dr_alerts_eventbridge" {
   arn = aws_sns_topic.dr_alerts.arn
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect    = "Allow"
-      Principal = { Service = "events.amazonaws.com" }
-      Action    = "sns:Publish"
-      Resource  = aws_sns_topic.dr_alerts.arn
-      Condition = {
-        ArnEquals = {
-          "aws:SourceArn" = aws_cloudwatch_event_rule.aws_health_dr.arn
+    Statement = [
+      {
+        Sid       = "AllowEventBridgePublishDrHealth"
+        Effect    = "Allow"
+        Principal = { Service = "events.amazonaws.com" }
+        Action    = "sns:Publish"
+        Resource  = aws_sns_topic.dr_alerts.arn
+        Condition = {
+          ArnEquals = {
+            "aws:SourceArn" = aws_cloudwatch_event_rule.aws_health_dr.arn
+          }
         }
-      }
+      },
+      {
+        Sid       = "AllowCloudWatchAlarmsPublishDr"
+        Effect    = "Allow"
+        Principal = { Service = "cloudwatch.amazonaws.com" }
+        Action    = "sns:Publish"
+        Resource  = aws_sns_topic.dr_alerts.arn
+      },
+    ]
+  })
+}
+
+# Route53 alarm lives in us-east-1 and publishes to the us-east-1 dr-alerts topic.
+resource "aws_sns_topic_policy" "dr_alerts_us_east_1_cloudwatch" {
+  provider = aws.us_east_1
+
+  arn = aws_sns_topic.dr_alerts_us_east_1.arn
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "AllowCloudWatchAlarmsPublishUseast1"
+      Effect    = "Allow"
+      Principal = { Service = "cloudwatch.amazonaws.com" }
+      Action    = "sns:Publish"
+      Resource  = aws_sns_topic.dr_alerts_us_east_1.arn
     }]
   })
 }

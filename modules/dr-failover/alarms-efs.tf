@@ -30,7 +30,7 @@ resource "aws_cloudwatch_metric_alarm" "efs_replication_lag" {
   period              = 60
   statistic           = "Maximum"
   threshold           = var.efs_replication_lag_threshold_sec
-  treat_missing_data  = "breaching"
+  treat_missing_data  = "notBreaching"
 
   dimensions = {
     FileSystemId = var.dr_efs_id

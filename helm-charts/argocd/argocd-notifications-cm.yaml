@@ -21,6 +21,10 @@
 #   url    -> module.dr_failover.argocd_webhook_url
 #   secret -> var.argocd_webhook_secret
 #
+# ArgoCD Notifications must read the same secret from
+# argocd-notifications-secret using key:
+#   dr-failover-argocd-webhook-secret
+#
 # IMPORTANT:
 #   This template uses placeholders. Do not apply as-is.
 #
@@ -40,7 +44,7 @@ data:
       - name: Content-Type
         value: application/json
       - name: X-Webhook-Signature
-        value: $hmac-sha256(payload, 'ENV_FAILOVER_ARGOCD_WEBHOOK_SECRET')
+        value: $hmac-sha256(payload, $dr-failover-argocd-webhook-secret)
 
   # ─── Templates: the payload sent to the webhook for each event ─────────
   template.alarm-suppress: |

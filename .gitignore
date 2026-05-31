@@ -86,3 +86,5 @@ ansible/vault_pass*
 # Local architecture artifacts
 ##################################
 architecture/
+
+modules/dr-failover/lambdas/*.zip
