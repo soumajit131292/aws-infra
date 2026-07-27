@@ -33,6 +33,18 @@ variable "alb_access_logs_prefix" {
   default     = "alb/accesshub"
 }
 
+variable "alb_access_logs_retention_days" {
+  description = "S3 lifecycle expiration in days for ALB access log objects"
+  type        = number
+  default     = 90
+}
+
+variable "alb_access_logs_noncurrent_retention_days" {
+  description = "S3 lifecycle expiration in days for noncurrent ALB access log object versions"
+  type        = number
+  default     = 30
+}
+
 variable "tags" {
   description = "Tags for S3 resources"
   type        = map(string)
