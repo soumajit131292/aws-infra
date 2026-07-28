@@ -1,0 +1,80 @@
+# Wazuh agent as a DaemonSet — the EKS-native replacement for "install the
+# agent on the container host" (Step 2). One agent pod per node, monitoring
+# the node's host paths and container runtime with host visibility.
+#
+# Before applying:
+#   1. Replace WAZUH_MANAGER value with the prod-wazuh private IP
+#      (terraform output -raw wazuh_private_ip in the wazuh stack).
+#   2. Confirm the agent image tag matches your Wazuh server version (4.9.x).
+#   3. Apply:  kubectl apply -f wazuh-agent-daemonset.yaml
+#
+# NOTE: this gives host/container telemetry. NETWORK telemetry comes from the
+# dedicated Zeek sensor + VPC Traffic Mirroring, not from these pods.
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: wazuh
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: wazuh-agent
+  namespace: wazuh
+  labels:
+    app: wazuh-agent
+spec:
+  selector:
+    matchLabels:
+      app: wazuh-agent
+  template:
+    metadata:
+      labels:
+        app: wazuh-agent
+    spec:
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      tolerations:
+        - operator: Exists # run on every node, including tainted ones
+      containers:
+        - name: wazuh-agent
+          image: wazuh/wazuh-agent:4.9.0
+          securityContext:
+            privileged: true
+          env:
+            - name: WAZUH_MANAGER
+              value: "REPLACE_WITH_WAZUH_PRIVATE_IP"
+            - name: WAZUH_AGENT_GROUP
+              value: "eks-prod"
+            - name: WAZUH_AGENT_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: host-root
+              mountPath: /host/root
+              readOnly: true
+            - name: host-var-log
+              mountPath: /host/var/log
+              readOnly: true
+            - name: containerd-sock
+              mountPath: /run/containerd/containerd.sock
+              readOnly: true
+      volumes:
+        - name: host-root
+          hostPath:
+            path: /
+        - name: host-var-log
+          hostPath:
+            path: /var/log
+        - name: containerd-sock
+          hostPath:
+            path: /run/containerd/containerd.sock
