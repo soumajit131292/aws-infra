@@ -13,7 +13,8 @@ module "argocd" {
   set = merge(
     var.set,
     {
-      "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/subnets" = join("\\,", data.aws_subnets.alb_public.ids)
+      "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/subnets"       = join("\\,", data.aws_subnets.alb_public.ids)
+      "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/wafv2-acl-arn" = data.terraform_remote_state.waf.outputs.web_acl_arn
     }
   )
 }

@@ -58,3 +58,5 @@ resource "helm_release" "argocd" {
 
   depends_on = [kubernetes_secret.argocd_redis_auth]
 }
+
+

@@ -18,6 +18,16 @@ data "terraform_remote_state" "vpc" {
   }
 }
 
+data "terraform_remote_state" "waf" {
+  backend = "s3"
+
+  config = {
+    bucket = "crave-infra-terraform-state-bucket"
+    key    = "waf/prod/eu-west-1/accesshub/terraform.tfstate"
+    region = "us-east-1"
+  }
+}
+
 data "aws_subnets" "alb_public" {
   filter {
     name   = "vpc-id"
