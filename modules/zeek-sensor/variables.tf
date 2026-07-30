@@ -40,6 +40,12 @@ variable "wazuh_manager_ip" {
   type        = string
 }
 
+variable "wazuh_agent_name" {
+  description = "Stable Wazuh agent name to register for the Zeek sensor."
+  type        = string
+  default     = null
+}
+
 variable "capture_interface" {
   description = "Interface Zeek listens on. For a mirror target this is the primary ENI (ens5 on Nitro)."
   type        = string

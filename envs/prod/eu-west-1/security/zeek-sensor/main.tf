@@ -18,6 +18,7 @@ module "zeek_sensor" {
   instance_profile_name = data.terraform_remote_state.vpc.outputs.ec2_ssm_instance_profile_name
 
   wazuh_manager_ip = data.terraform_remote_state.wazuh.outputs.wazuh_private_ip
+  wazuh_agent_name = "prod-zeek-sensor"
 
   source_network_interface_ids = var.source_network_interface_ids
 

@@ -46,6 +46,18 @@ variable "retention_days" {
   default     = 21
 }
 
+variable "enable_logall_json" {
+  description = "Store all received events in Wazuh archives JSON, including raw Zeek events that do not raise alerts."
+  type        = bool
+  default     = false
+}
+
+variable "enable_archive_indexing" {
+  description = "Index Wazuh archives into wazuh-archives-* so raw Zeek logs are searchable in the dashboard."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)

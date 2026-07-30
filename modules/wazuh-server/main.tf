@@ -133,6 +133,15 @@ locals {
     # Credentials are written to /root/wazuh-install-files.tar by the installer.
     # Retrieve them over SSM: sudo tar -xf /root/wazuh-install-files.tar -O wazuh-install-files/wazuh-passwords.txt
 
+    # --- Raw archive visibility for Zeek/searchable low-severity events ----
+    if [ "${var.enable_logall_json}" = "true" ]; then
+      sed -i 's|<logall_json>no</logall_json>|<logall_json>yes</logall_json>|' /var/ossec/etc/ossec.conf
+    fi
+
+    if [ "${var.enable_archive_indexing}" = "true" ]; then
+      sed -i '/archives:/,/^[^[:space:]]/ s/enabled: false/enabled: true/' /etc/filebeat/filebeat.yml
+    fi
+
     # --- Index retention: delete Wazuh indices after N days (ISM policy) ---
     # Best-effort; runs after install once the indexer is answering. The
     # ism_template auto-attaches the policy to new wazuh-* indices.
@@ -145,6 +154,9 @@ locals {
       "https://localhost:9200/_plugins/_ism/policies/wazuh-retention" \
       -H 'Content-Type: application/json' \
       -d '{"policy":{"description":"Delete Wazuh indices after ${var.retention_days} days","default_state":"hot","states":[{"name":"hot","actions":[],"transitions":[{"state_name":"delete","conditions":{"min_index_age":"${var.retention_days}d"}}]},{"name":"delete","actions":[{"delete":{}}],"transitions":[]}],"ism_template":[{"index_patterns":["wazuh-alerts-*","wazuh-archives-*"],"priority":100}]}}' || true
+
+    systemctl restart wazuh-manager || true
+    systemctl restart filebeat || true
   EOT
 }
 
@@ -187,4 +199,32 @@ resource "aws_volume_attachment" "indexer_data" {
   device_name = "/dev/sdf"
   volume_id   = aws_ebs_volume.indexer_data.id
   instance_id = aws_instance.this.id
+}
+
+resource "aws_ssm_association" "archive_visibility" {
+  count = var.enable_logall_json || var.enable_archive_indexing ? 1 : 0
+
+  name = "AWS-RunShellScript"
+
+  targets {
+    key    = "InstanceIds"
+    values = [aws_instance.this.id]
+  }
+
+  parameters = {
+    commands = <<-EOC
+      set -euxo pipefail
+
+      if [ "${var.enable_logall_json}" = "true" ]; then
+        sed -i 's|<logall_json>no</logall_json>|<logall_json>yes</logall_json>|' /var/ossec/etc/ossec.conf
+      fi
+
+      if [ "${var.enable_archive_indexing}" = "true" ]; then
+        sed -i '/archives:/,/^[^[:space:]]/ s/enabled: false/enabled: true/' /etc/filebeat/filebeat.yml
+      fi
+
+      systemctl restart wazuh-manager
+      systemctl restart filebeat
+      EOC
+  }
 }

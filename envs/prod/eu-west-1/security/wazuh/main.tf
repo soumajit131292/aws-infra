@@ -27,5 +27,8 @@ module "wazuh" {
   wazuh_version  = var.wazuh_version
   retention_days = var.retention_days
 
+  enable_logall_json      = var.enable_logall_json
+  enable_archive_indexing = var.enable_archive_indexing
+
   tags = var.tags
 }

@@ -77,6 +77,18 @@ variable "retention_days" {
   default     = 21
 }
 
+variable "enable_logall_json" {
+  description = "Store all received events in /var/ossec/logs/archives/archives.json. Required to browse raw Zeek conn/dns/http events that do not raise alerts."
+  type        = bool
+  default     = false
+}
+
+variable "enable_archive_indexing" {
+  description = "Ship Wazuh archives to the indexer via Filebeat, creating searchable wazuh-archives-* indices."
+  type        = bool
+  default     = false
+}
+
 variable "key_name" {
   description = "Optional EC2 key pair for SSH. Leave null and use SSM Session Manager."
   type        = string

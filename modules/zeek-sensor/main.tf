@@ -45,6 +45,8 @@ resource "aws_security_group_rule" "egress_all" {
 }
 
 locals {
+  wazuh_agent_name = coalesce(var.wazuh_agent_name, var.name)
+
   user_data = <<-EOT
     #!/bin/bash
     set -euxo pipefail
@@ -70,11 +72,19 @@ locals {
 
     # --- Install + enrol the Wazuh agent ---------------------------------
     curl -sO https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent.deb || true
-    WAZUH_MANAGER="${var.wazuh_manager_ip}" apt-get install -y wazuh-agent || \
+    WAZUH_MANAGER="${var.wazuh_manager_ip}" WAZUH_AGENT_NAME="${local.wazuh_agent_name}" apt-get install -y wazuh-agent || \
       { curl -s https://packages.wazuh.com/key/GPG-KEY-WAZUH | gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import && \
         chmod 644 /usr/share/keyrings/wazuh.gpg && \
         echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" > /etc/apt/sources.list.d/wazuh.list && \
-        apt-get update -y && WAZUH_MANAGER="${var.wazuh_manager_ip}" apt-get install -y wazuh-agent; }
+        apt-get update -y && WAZUH_MANAGER="${var.wazuh_manager_ip}" WAZUH_AGENT_NAME="${local.wazuh_agent_name}" apt-get install -y wazuh-agent; }
+
+    for _ in $(seq 1 30); do
+      if grep -q "${local.wazuh_agent_name}" /var/ossec/etc/client.keys 2>/dev/null; then
+        break
+      fi
+      /var/ossec/bin/agent-auth -m "${var.wazuh_manager_ip}" -A "${local.wazuh_agent_name}" && break
+      sleep 10
+    done
 
     # --- Tail Zeek's JSON logs (Step 4) ----------------------------------
     for logname in http dns conn; do
@@ -171,4 +181,35 @@ resource "aws_ec2_traffic_mirror_session" "this" {
   virtual_network_id       = var.traffic_mirror_vni
 
   tags = merge(var.tags, { Name = "${var.name}-session-${each.key}" })
+}
+
+resource "aws_ssm_association" "wazuh_agent_config" {
+  name = "AWS-RunShellScript"
+
+  targets {
+    key    = "InstanceIds"
+    values = [aws_instance.this.id]
+  }
+
+  parameters = {
+    commands = <<-EOC
+      set -euxo pipefail
+
+      for logname in http dns conn; do
+        if ! grep -q "/opt/zeek/logs/current/$logname.log" /var/ossec/etc/ossec.conf; then
+          sed -i "/<\/ossec_config>/i \\  <localfile>\\n    <log_format>json</log_format>\\n    <location>/opt/zeek/logs/current/$logname.log</location>\\n  </localfile>" /var/ossec/etc/ossec.conf
+        fi
+      done
+
+      for _ in $(seq 1 30); do
+        if grep -q "${local.wazuh_agent_name}" /var/ossec/etc/client.keys 2>/dev/null; then
+          break
+        fi
+        /var/ossec/bin/agent-auth -m "${var.wazuh_manager_ip}" -A "${local.wazuh_agent_name}" && break
+        sleep 10
+      done
+
+      systemctl restart wazuh-agent
+      EOC
+  }
 }
