@@ -31,6 +31,12 @@ variable "source_network_interface_ids" {
   default     = []
 }
 
+variable "enable_mirror_automation" {
+  description = "Deploy the Lambda + EventBridge that auto-syncs mirror sessions with live EKS nodes. When true, leave source_network_interface_ids empty."
+  type        = bool
+  default     = true
+}
+
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)

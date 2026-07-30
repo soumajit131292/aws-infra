@@ -71,6 +71,12 @@ variable "wazuh_version" {
   default     = "4.9"
 }
 
+variable "retention_days" {
+  description = "Days to retain Wazuh indices before the ISM policy deletes them."
+  type        = number
+  default     = 21
+}
+
 variable "key_name" {
   description = "Optional EC2 key pair for SSH. Leave null and use SSM Session Manager."
   type        = string

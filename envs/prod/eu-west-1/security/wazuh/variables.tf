@@ -40,6 +40,12 @@ variable "wazuh_version" {
   default     = "4.9"
 }
 
+variable "retention_days" {
+  description = "Days to retain Wazuh indices (ISM policy deletes older indices)."
+  type        = number
+  default     = 21
+}
+
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)

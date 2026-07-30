@@ -132,6 +132,19 @@ locals {
 
     # Credentials are written to /root/wazuh-install-files.tar by the installer.
     # Retrieve them over SSM: sudo tar -xf /root/wazuh-install-files.tar -O wazuh-install-files/wazuh-passwords.txt
+
+    # --- Index retention: delete Wazuh indices after N days (ISM policy) ---
+    # Best-effort; runs after install once the indexer is answering. The
+    # ism_template auto-attaches the policy to new wazuh-* indices.
+    ADMIN_PW="$(tar -xOf /root/wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt | grep -A1 "indexer_username: 'admin'" | grep -m1 'indexer_password' | sed "s/.*: '//; s/'.*//")"
+    for _ in $(seq 1 60); do
+      curl -sk -u "admin:$ADMIN_PW" https://localhost:9200/_cluster/health >/dev/null && break
+      sleep 10
+    done
+    curl -sk -u "admin:$ADMIN_PW" -X PUT \
+      "https://localhost:9200/_plugins/_ism/policies/wazuh-retention" \
+      -H 'Content-Type: application/json' \
+      -d '{"policy":{"description":"Delete Wazuh indices after ${var.retention_days} days","default_state":"hot","states":[{"name":"hot","actions":[],"transitions":[{"state_name":"delete","conditions":{"min_index_age":"${var.retention_days}d"}}]},{"name":"delete","actions":[{"delete":{}}],"transitions":[]}],"ism_template":[{"index_patterns":["wazuh-alerts-*","wazuh-archives-*"],"priority":100}]}}' || true
   EOT
 }
 

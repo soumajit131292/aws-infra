@@ -24,7 +24,8 @@ module "wazuh" {
     data.terraform_remote_state.vpc.outputs.private_app_sg_id
   ]
 
-  wazuh_version = var.wazuh_version
+  wazuh_version  = var.wazuh_version
+  retention_days = var.retention_days
 
   tags = var.tags
 }

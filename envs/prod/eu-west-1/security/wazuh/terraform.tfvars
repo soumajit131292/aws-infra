@@ -5,6 +5,7 @@ instance_type    = "r6i.large" # 2 vCPU / 16 GB — prod-appropriate for OpenSea
 root_volume_size = 50
 data_volume_size = 100
 wazuh_version    = "4.9"
+retention_days   = 21 # Wazuh index retention (days) enforced via ISM policy
 
 # REQUIRED: lock the dashboard + SSH to your admin/VPN ranges before apply.
 # Leaving this empty means NO 443/22 ingress is created (SSM still works).
