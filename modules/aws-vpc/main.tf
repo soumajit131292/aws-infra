@@ -477,7 +477,7 @@ resource "aws_subnet" "firewall" {
 ###############################
 resource "aws_cloudwatch_log_group" "vpc_flow" {
   name              = "/aws/vpc/${var.name}-flowlogs"
-  retention_in_days = 7
+  retention_in_days = var.flow_log_retention_in_days
 }
 resource "aws_cloudwatch_log_group" "firewall" {
   count = var.enable_network_firewall ? 1 : 0

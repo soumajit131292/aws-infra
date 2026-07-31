@@ -65,9 +65,9 @@ module "dr_failover" {
   efs_replication_lag_datapoints_to_alarm    = var.efs_replication_lag_datapoints_to_alarm
 
   # Phase 2: alarm suppression
-  argocd_webhook_secret             = trimspace(data.aws_secretsmanager_secret_version.argocd_webhook_secret.secret_string)
+  argocd_webhook_secret              = trimspace(data.aws_secretsmanager_secret_version.argocd_webhook_secret.secret_string)
   alarm_suppression_min_hold_seconds = var.alarm_suppression_min_hold_seconds
-  alarm_suppression_max_age_seconds = var.alarm_suppression_max_age_seconds
+  alarm_suppression_max_age_seconds  = var.alarm_suppression_max_age_seconds
 
   # Approval
   approval_shared_secret   = trimspace(data.aws_secretsmanager_secret_version.approval_shared_secret.secret_string)

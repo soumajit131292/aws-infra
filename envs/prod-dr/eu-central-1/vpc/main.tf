@@ -12,6 +12,7 @@ module "network" {
   vpc_cidr                   = var.vpc_cidr
   cluster_name               = var.cluster_name
   azs                        = var.azs
+  flow_log_retention_in_days = 365 # CEEL: 365-day log retention
   region                     = var.region
   public_subnets             = var.public_subnets
   private_app_subnets        = var.private_app_subnets

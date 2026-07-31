@@ -1,4 +1,4 @@
-region = "eu-west-1"
+region               = "eu-west-1"
 release_name         = "external-secrets"
 namespace            = "external-secrets"
 create_namespace     = true

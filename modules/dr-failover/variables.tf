@@ -9,6 +9,12 @@ variable "source_region" {
   default     = "eu-west-1"
 }
 
+variable "log_retention_in_days" {
+  description = "CloudWatch retention (days) for the DR-failover Lambda + Step Functions log groups."
+  type        = number
+  default     = 365
+}
+
 variable "dr_region" {
   description = "DR AWS region (where this orchestration runs)."
   type        = string

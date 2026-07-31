@@ -34,10 +34,11 @@ module "mirror_automation" {
   count  = var.enable_mirror_automation ? 1 : 0
   source = "../../../../../modules/zeek-mirror-automation"
 
-  name             = "prod-zeek-mirror-automation"
-  cluster_name     = data.terraform_remote_state.eks.outputs.cluster_name
-  mirror_target_id = module.zeek_sensor.traffic_mirror_target_id
-  mirror_filter_id = module.zeek_sensor.traffic_mirror_filter_id
+  name               = "prod-zeek-mirror-automation"
+  cluster_name       = data.terraform_remote_state.eks.outputs.cluster_name
+  mirror_target_id   = module.zeek_sensor.traffic_mirror_target_id
+  mirror_filter_id   = module.zeek_sensor.traffic_mirror_filter_id
+  log_retention_days = 365 # CEEL: 365-day log retention
 
   tags = var.tags
 }

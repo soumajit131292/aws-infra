@@ -1,4 +1,4 @@
-region = "eu-central-1"
+region                 = "eu-central-1"
 workspace_alias        = "prod-dr-accesshub-amp"
 existing_workspace_arn = ""
 scraper_alias          = "prod-dr-accesshub-eks-scraper"

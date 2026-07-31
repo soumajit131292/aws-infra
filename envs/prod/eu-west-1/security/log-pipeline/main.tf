@@ -64,9 +64,10 @@ module "security_log_pipeline" {
   lifecycle_deep_archive_days = var.lifecycle_deep_archive_days
   lifecycle_expiration_days   = var.lifecycle_expiration_days
 
-  firehose_buffer_size_mb          = var.firehose_buffer_size_mb
-  firehose_buffer_interval_seconds = var.firehose_buffer_interval_seconds
-  firehose_compression_format      = var.firehose_compression_format
+  firehose_buffer_size_mb           = var.firehose_buffer_size_mb
+  firehose_buffer_interval_seconds  = var.firehose_buffer_interval_seconds
+  firehose_compression_format       = var.firehose_compression_format
+  firehose_error_log_retention_days = 365 # CEEL: 365-day log retention
 
   log_subscriptions = local.base_subscriptions
 

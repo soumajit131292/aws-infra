@@ -8,7 +8,7 @@ module "argocd" {
   manage_namespace = var.manage_namespace
   timeout          = var.timeout
   # atomic           = var.atomic
-  values_files     = var.values_files
-  values           = var.values
-  set              = var.set
+  values_files = var.values_files
+  values       = var.values
+  set          = var.set
 }

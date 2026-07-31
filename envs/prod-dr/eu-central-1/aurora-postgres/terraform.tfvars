@@ -1,7 +1,8 @@
-region                     = "eu-central-1"
-cluster_identifier         = "prod-dr-aurora-postgres"
-database_name              = "accesshub"
-db_credentials_secret_name = "prod-dr/aurora/app-credentials"
+region                           = "eu-central-1"
+cluster_identifier               = "prod-dr-aurora-postgres"
+cloudwatch_log_retention_in_days = 365 # CEEL: 365-day log retention
+database_name                    = "accesshub"
+db_credentials_secret_name       = "prod-dr/aurora/app-credentials"
 
 # Must match the primary cluster exactly. Aurora Global Database
 # requires identical engine + version across primary and all secondaries.

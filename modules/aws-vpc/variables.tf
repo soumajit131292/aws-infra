@@ -4,6 +4,12 @@ variable "name" {}
 variable "vpc_cidr" {}
 variable "azs" { type = list(string) }
 
+variable "flow_log_retention_in_days" {
+  description = "CloudWatch retention (days) for the VPC flow logs log group."
+  type        = number
+  default     = 7
+}
+
 variable "public_subnets" {
   type = map(string)
 }
