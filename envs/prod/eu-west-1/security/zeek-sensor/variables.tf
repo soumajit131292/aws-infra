@@ -4,6 +4,18 @@ variable "region" {
   default     = "eu-west-1"
 }
 
+variable "alert_email_subscribers" {
+  description = "Emails alerted on server CPU breaches (reused from the dr-failover list)."
+  type        = list(string)
+  default     = []
+}
+
+variable "cpu_threshold_percent" {
+  description = "CPUUtilization alarm threshold (percent) for the Zeek sensor VM."
+  type        = number
+  default     = 80
+}
+
 variable "vpc_cidr" {
   description = "VPC CIDR (allows VXLAN mirror traffic)."
   type        = string

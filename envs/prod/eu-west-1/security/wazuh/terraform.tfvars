@@ -7,6 +7,13 @@ data_volume_size = 100
 wazuh_version    = "4.9"
 retention_days   = 21 # Wazuh index retention (days) enforced via ISM policy
 
+# Server CPU-use alerting for the Wazuh VM (reused dr-failover alert list).
+cpu_threshold_percent = 80
+alert_email_subscribers = [
+  "Anil.Meher@craveinfotech.com",
+  "soumajit.roy@craveinfotech.com",
+]
+
 # Required for browsing raw Zeek conn/dns/http records in wazuh-archives-*.
 # This increases index volume because Wazuh stores all received events.
 enable_logall_json      = true

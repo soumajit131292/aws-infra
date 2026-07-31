@@ -10,6 +10,13 @@ source_network_interface_ids = []
 # Lambda + EventBridge auto-syncs mirror sessions as nodes scale/recycle.
 enable_mirror_automation = true
 
+# Server CPU-use alerting for the Zeek sensor VM (reused dr-failover alert list).
+cpu_threshold_percent = 80
+alert_email_subscribers = [
+  "Anil.Meher@craveinfotech.com",
+  "soumajit.roy@craveinfotech.com",
+]
+
 tags = {
   Environment = "prod"
   Project     = "crave"
