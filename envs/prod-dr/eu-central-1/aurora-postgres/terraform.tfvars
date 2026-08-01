@@ -6,7 +6,7 @@ db_credentials_secret_name       = "prod-dr/aurora/app-credentials"
 
 # Must match the primary cluster exactly. Aurora Global Database
 # requires identical engine + version across primary and all secondaries.
-engine_version = "16.4"
+engine_version = "16.8"
 instance_class = "db.r6g.large"
 instance_count = 2
 
@@ -15,9 +15,9 @@ preferred_backup_window      = "03:00-04:00"
 preferred_maintenance_window = "sun:04:00-sun:05:00"
 port                         = 5432
 
-deletion_protection       = true
+deletion_protection       = false
 skip_final_snapshot       = false
-final_snapshot_identifier = "prod-dr-aurora-postgres-final"
+final_snapshot_identifier = "prod-dr-aurora-postgres-final-global-rebuild-20260801"
 apply_immediately         = true
 
 storage_encrypted     = true

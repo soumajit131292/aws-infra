@@ -134,12 +134,6 @@ resource "aws_rds_cluster" "this" {
   enabled_cloudwatch_logs_exports = var.enabled_cloudwatch_logs_exports
 
   lifecycle {
-    # AWS sets global_cluster_identifier on the PRIMARY cluster when the
-    # aws_rds_global_cluster adopts it (source_db_cluster_identifier flow).
-    # Ignoring this prevents Terraform from seeing drift and attempting a
-    # destructive recreation of the cluster.
-    ignore_changes = [global_cluster_identifier]
-
     precondition {
       condition     = var.skip_final_snapshot || length(var.final_snapshot_identifier) > 0
       error_message = "final_snapshot_identifier must be set when skip_final_snapshot is false"
@@ -148,6 +142,11 @@ resource "aws_rds_cluster" "this" {
     precondition {
       condition     = !var.is_secondary || var.global_cluster_identifier != null
       error_message = "global_cluster_identifier is required when is_secondary = true."
+    }
+
+    postcondition {
+      condition     = !var.is_secondary || self.global_cluster_identifier == var.global_cluster_identifier
+      error_message = "Aurora secondary cluster is not attached to the configured global_cluster_identifier. Verify the live Global Database membership before applying."
     }
   }
 
