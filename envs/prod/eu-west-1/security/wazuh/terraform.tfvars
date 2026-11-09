@@ -4,7 +4,11 @@ vpc_cidr = "10.20.0.0/16"
 instance_type    = "r6i.large" # 2 vCPU / 16 GB — prod-appropriate for OpenSearch
 root_volume_size = 50
 data_volume_size = 100
-wazuh_version    = "4.9"
+wazuh_version    = "4.14" # official installer pins 4.14.10; EKS agent image = wazuh/wazuh-agent:4.14.10
+
+# REQUIRED: the CURRENT server IP, so the rebuilt server keeps the address the
+# Zeek and EKS agents report to. Get it with: terraform output -raw wazuh_private_ip
+wazuh_private_ip = "REPLACE_WITH_CURRENT_WAZUH_IP"
 retention_days   = 21 # Wazuh index retention (days) enforced via ISM policy
 
 # Server CPU-use alerting for the Wazuh VM (reused dr-failover alert list).

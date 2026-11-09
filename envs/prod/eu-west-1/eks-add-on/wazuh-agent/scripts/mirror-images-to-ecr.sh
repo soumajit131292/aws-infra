@@ -20,7 +20,7 @@ ECR_PREFIX="${ECR_PREFIX:-thirdparty}"
 SUFFIX="${SUFFIX:-amd64-platform}"
 
 IMAGES=(
-  "docker.io/wazuh/wazuh-agent:4.9.0"
+  "docker.io/wazuh/wazuh-agent:4.14.10"
 )
 
 echo "Logging into ECR registry ${ECR_REGISTRY}"
@@ -77,4 +77,4 @@ echo "All images pushed successfully"
 echo "Use these values in envs/prod/eu-west-1/eks-add-on/wazuh-agent/terraform.tfvars:"
 echo "image_registry   = \"${ECR_REGISTRY}\""
 echo "image_repository = \"${ECR_PREFIX}/wazuh-agent\""
-echo "image_tag        = \"4.9.0-${SUFFIX}\""
+echo "image_tag        = \"4.14.10-${SUFFIX}\""

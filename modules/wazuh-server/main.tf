@@ -164,6 +164,7 @@ resource "aws_instance" "this" {
   ami                         = data.aws_ssm_parameter.ubuntu_ami.value
   instance_type               = var.instance_type
   subnet_id                   = var.subnet_id
+  private_ip                  = var.private_ip
   iam_instance_profile        = var.instance_profile_name
   key_name                    = var.key_name
   associate_public_ip_address = false

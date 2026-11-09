@@ -11,6 +11,7 @@ module "wazuh" {
   name          = "prod-wazuh"
   vpc_id        = data.terraform_remote_state.vpc.outputs.vpc_id
   subnet_id     = data.terraform_remote_state.vpc.outputs.private_app_subnet_ids[0]
+  private_ip    = var.wazuh_private_ip
   instance_type = var.instance_type
 
   instance_profile_name = data.terraform_remote_state.vpc.outputs.ec2_ssm_instance_profile_name

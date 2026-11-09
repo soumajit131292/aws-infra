@@ -37,7 +37,7 @@ variable "image_repository" {
 variable "image_tag" {
   description = "Image tag for the Wazuh agent."
   type        = string
-  default     = "4.9.0-amd64-platform"
+  default     = "4.14.10-amd64-platform"
 }
 
 variable "collect_container_logs" {

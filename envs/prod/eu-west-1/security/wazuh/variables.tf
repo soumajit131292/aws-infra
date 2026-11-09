@@ -49,7 +49,17 @@ variable "admin_cidrs" {
 variable "wazuh_version" {
   description = "Wazuh installer version series."
   type        = string
-  default     = "4.9"
+  default     = "4.14"
+}
+
+variable "wazuh_private_ip" {
+  description = "Fixed private IP of the Wazuh server. Set it to the CURRENT IP (terraform output -raw wazuh_private_ip) so a rebuild keeps the address the Zeek and EKS agents report to."
+  type        = string
+
+  validation {
+    condition     = can(cidrhost("${var.wazuh_private_ip}/32", 0))
+    error_message = "wazuh_private_ip must be an IPv4 address. Set it in terraform.tfvars to the current server IP (terraform output -raw wazuh_private_ip)."
+  }
 }
 
 variable "retention_days" {

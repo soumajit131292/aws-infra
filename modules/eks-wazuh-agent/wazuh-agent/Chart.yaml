@@ -3,5 +3,5 @@ name: wazuh-agent
 description: Wazuh agent as a DaemonSet (one agent per EKS node) reporting to an external Wazuh manager
 type: application
 version: 0.1.0
-appVersion: "4.9.0"
+appVersion: "4.14.10"
 kubeVersion: ">=1.23.0-0"

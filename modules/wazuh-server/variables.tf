@@ -13,6 +13,12 @@ variable "subnet_id" {
   type        = string
 }
 
+variable "private_ip" {
+  description = "Fixed private IP for the server (must be inside subnet_id). Keeps the manager address stable across rebuilds so enrolled agents keep reporting. null = AWS assigns one."
+  type        = string
+  default     = null
+}
+
 variable "instance_type" {
   description = "Instance type. Memory-optimized recommended for OpenSearch stability."
   type        = string
