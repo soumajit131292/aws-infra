@@ -185,6 +185,12 @@ variable "alarm_suppression_min_hold_seconds" {
   default     = 900
 }
 
+variable "dynamodb_table_size_threshold_bytes" {
+  description = "Alarm threshold, in bytes, for prod-dr-failover-alarm-suppression-state DynamoDB table storage utilization."
+  type        = number
+  default     = 524288000
+}
+
 # Approval gate
 variable "approval_shared_secret_arn" {
   description = "Secrets Manager ARN containing the shared secret used by the approval callback."

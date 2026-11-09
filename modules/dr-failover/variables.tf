@@ -304,6 +304,12 @@ variable "alarm_suppression_min_hold_seconds" {
   default     = 900 # 15 min
 }
 
+variable "dynamodb_table_size_threshold_bytes" {
+  description = "Alarm when the alarm-suppression-state DynamoDB table size exceeds this many bytes."
+  type        = number
+  default     = 524288000
+}
+
 ###############################
 # Approval gate
 ###############################

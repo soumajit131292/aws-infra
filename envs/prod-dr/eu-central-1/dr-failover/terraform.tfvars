@@ -66,8 +66,9 @@ approval_timeout_seconds   = 3600
 # Phase 2 — alarm suppression during ArgoCD deployments
 # Same value goes into the ArgoCD Notifications ConfigMap as $hmac-shared-secret.
 # Secret value is sourced from Secrets Manager.
-argocd_webhook_secret_arn         = "arn:aws:secretsmanager:eu-central-1:495711089104:secret:prod-dr/dr-failover/argocd-webhook-secret-2vPxZs"
-alarm_suppression_max_age_seconds = 2700 # 45 min — should exceed your longest deploy
+argocd_webhook_secret_arn           = "arn:aws:secretsmanager:eu-central-1:495711089104:secret:prod-dr/dr-failover/argocd-webhook-secret-2vPxZs"
+alarm_suppression_max_age_seconds   = 2700      # 45 min — should exceed your longest deploy
+dynamodb_table_size_threshold_bytes = 524288000 # 500 MB — table should stay tiny because rows expire via TTL
 
 # Notification subscribers — email-only.
 alert_email_subscribers = [

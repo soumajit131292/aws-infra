@@ -23,6 +23,12 @@ variable "tags" {
   type = map(string)
 }
 
+variable "deletion_protection" {
+  description = "Whether to enable deletion protection on the EKS cluster."
+  type        = bool
+  default     = true
+}
+
 variable "core_node_max_pods" {
   description = "Maximum number of pods scheduled per core node."
   type        = number

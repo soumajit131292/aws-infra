@@ -89,6 +89,30 @@ variable "enable_archive_indexing" {
   default     = false
 }
 
+variable "enable_agent_cleanup" {
+  description = "Create the EKS agent group and a cron job that removes that group's long-disconnected agents (see agent-maintenance.tf)."
+  type        = bool
+  default     = false
+}
+
+variable "agent_cleanup_group" {
+  description = "Agent group created for EKS node agents; only agents in this group are auto-removed."
+  type        = string
+  default     = "eks-prod"
+}
+
+variable "agent_cleanup_older_than" {
+  description = "Remove agents of agent_cleanup_group disconnected for longer than this (Wazuh API time format, e.g. 1h, 1d)."
+  type        = string
+  default     = "1h"
+}
+
+variable "agent_cleanup_schedule" {
+  description = "Cron schedule (5 fields) for the cleanup job."
+  type        = string
+  default     = "*/30 * * * *"
+}
+
 variable "key_name" {
   description = "Optional EC2 key pair for SSH. Leave null and use SSM Session Manager."
   type        = string

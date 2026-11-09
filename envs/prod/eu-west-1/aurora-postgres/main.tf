@@ -44,10 +44,10 @@ module "aurora_postgres" {
   instance_count     = var.instance_count
   vpc_id             = data.terraform_remote_state.vpc.outputs.vpc_id
   db_subnet_ids      = data.terraform_remote_state.vpc.outputs.private_db_subnet_ids
-  allowed_security_group_ids = [
+  allowed_security_group_ids = compact([
     data.terraform_remote_state.vpc.outputs.private_app_sg_id,
-    data.terraform_remote_state.eks.outputs.cluster_security_group_id,
-  ]
+    try(data.terraform_remote_state.eks.outputs.cluster_security_group_id, null),
+  ])
   allowed_cidr_blocks               = var.allowed_cidr_blocks
   port                              = var.port
   backup_retention_period           = var.backup_retention_period

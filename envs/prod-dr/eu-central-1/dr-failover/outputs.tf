@@ -32,6 +32,12 @@ output "argocd_webhook_url" {
   description = "URL ArgoCD Notifications POSTs to when a sync starts / completes."
   value       = module.dr_failover.argocd_webhook_url
 }
+
+output "alarm_suppression_dynamodb_alarm_names" {
+  description = "CloudWatch alarm names for the alarm-suppression-state DynamoDB table."
+  value       = module.dr_failover.alarm_suppression_dynamodb_alarm_names
+}
+
 output "dashboard_name" {
   description = "CloudWatch dashboard aggregating all DR signals."
   value       = module.dr_failover.dashboard_name

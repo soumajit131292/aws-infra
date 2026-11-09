@@ -61,7 +61,7 @@ resource "aws_eks_cluster" "this" {
   role_arn = aws_iam_role.eks_cluster.arn
   version  = "1.34"
 
-  deletion_protection = true
+  deletion_protection = var.deletion_protection
 
   access_config {
     authentication_mode = "API_AND_CONFIG_MAP"

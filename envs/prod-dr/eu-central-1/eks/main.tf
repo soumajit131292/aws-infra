@@ -29,6 +29,7 @@ module "eks" {
   region            = var.region
   private_app_sg_id = data.terraform_remote_state.vpc.outputs.private_app_sg_id
 
+  deletion_protection             = false
   core_node_max_pods              = 110
   enable_prefix_delegation        = true
   warm_prefix_target              = 1

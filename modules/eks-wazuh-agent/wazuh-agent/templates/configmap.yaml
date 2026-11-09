@@ -1,0 +1,162 @@
+{{- $manager := required "manager.address is required" .Values.manager.address -}}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "wazuh-agent.name" . }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh-agent.labels" . | nindent 4 }}
+data:
+  # Rendered here (not via image env vars) so the agent config does not depend
+  # on how a particular image's entrypoint handles environment variables.
+  # __NODE_NAME__ is substituted by start.sh at container start.
+  ossec.conf: |
+    <ossec_config>
+      <client>
+        <server>
+          <address>{{ $manager }}</address>
+          <port>{{ .Values.manager.port }}</port>
+          <protocol>tcp</protocol>
+        </server>
+        <enrollment>
+          <enabled>yes</enabled>
+          <manager_address>{{ $manager }}</manager_address>
+          <port>{{ .Values.manager.enrollmentPort }}</port>
+          <agent_name>__NODE_NAME__</agent_name>
+          <groups>{{ .Values.agent.group }}</groups>
+        </enrollment>
+        <crypto_method>aes</crypto_method>
+        <notify_time>10</notify_time>
+        <time-reconnect>60</time-reconnect>
+        <auto_restart>yes</auto_restart>
+      </client>
+
+      <client_buffer>
+        <disabled>no</disabled>
+        <queue_size>5000</queue_size>
+        <events_per_second>500</events_per_second>
+      </client_buffer>
+
+      {{- with .Values.agent.labels }}
+      <labels>
+        {{- range $k, $v := . }}
+        {{- if $v }}
+        <label key="{{ $k }}">{{ $v }}</label>
+        {{- end }}
+        {{- end }}
+        <label key="node">__NODE_NAME__</label>
+      </labels>
+      {{- end }}
+
+      <!-- File integrity monitoring on the node filesystem (mounted at /host) -->
+      <syscheck>
+        <disabled>{{ if .Values.fim.enabled }}no{{ else }}yes{{ end }}</disabled>
+        <frequency>{{ .Values.fim.frequency }}</frequency>
+        <scan_on_start>yes</scan_on_start>
+        <alert_new_files>yes</alert_new_files>
+        {{- range .Values.fim.directories }}
+        <directories check_all="yes">{{ . }}</directories>
+        {{- end }}
+        {{- range .Values.fim.ignore }}
+        <ignore>{{ . }}</ignore>
+        {{- end }}
+        <skip_nfs>yes</skip_nfs>
+        <skip_dev>yes</skip_dev>
+        <skip_proc>yes</skip_proc>
+        <skip_sys>yes</skip_sys>
+      </syscheck>
+
+      <!-- Rootkit / anomaly checks against the node filesystem -->
+      <rootcheck>
+        <disabled>{{ if .Values.rootcheck.enabled }}no{{ else }}yes{{ end }}</disabled>
+        <base_directory>/host</base_directory>
+        <check_files>yes</check_files>
+        <check_trojans>yes</check_trojans>
+        <check_dev>yes</check_dev>
+        <check_sys>yes</check_sys>
+        <check_pids>yes</check_pids>
+        <check_ports>yes</check_ports>
+        <check_if>yes</check_if>
+        <frequency>43200</frequency>
+        <rootkit_files>etc/shared/rootkit_files.txt</rootkit_files>
+        <rootkit_trojans>etc/shared/rootkit_trojans.txt</rootkit_trojans>
+        <skip_nfs>yes</skip_nfs>
+      </rootcheck>
+
+      <!-- CIS/SCA policies would evaluate the agent container, not the node. -->
+      <sca>
+        <enabled>no</enabled>
+      </sca>
+
+      <!-- Inventory (hostNetwork/hostPID give node-level ports and processes). -->
+      <wodle name="syscollector">
+        <disabled>no</disabled>
+        <interval>1h</interval>
+        <scan_on_start>yes</scan_on_start>
+        <hardware>yes</hardware>
+        <os>no</os>
+        <network>yes</network>
+        <packages>no</packages>
+        <ports all="no">yes</ports>
+        <processes>yes</processes>
+      </wodle>
+
+      {{- range .Values.collect.systemLogs }}
+      <localfile>
+        <log_format>syslog</log_format>
+        <location>{{ . }}</location>
+      </localfile>
+      {{- end }}
+
+      {{- if .Values.collect.containerLogs }}
+      <localfile>
+        <log_format>syslog</log_format>
+        <location>/host/var/log/containers/*.log</location>
+      </localfile>
+      {{- end }}
+
+      <localfile>
+        <log_format>command</log_format>
+        <command>df -P</command>
+        <frequency>360</frequency>
+      </localfile>
+    </ossec_config>
+
+  start.sh: |
+    #!/bin/sh
+    # Bypasses the image entrypoint: render config, restore the per-node key,
+    # start the agent, and supervise it so the pod restarts if agentd dies.
+    set -eu
+    OSSEC=/var/ossec
+    PERSIST=/persist
+
+    sed "s/__NODE_NAME__/${NODE_NAME}/g" /config/ossec.conf > "$OSSEC/etc/ossec.conf"
+    chown root:wazuh "$OSSEC/etc/ossec.conf" 2>/dev/null || true
+    chmod 640 "$OSSEC/etc/ossec.conf"
+
+    # Reuse this node's registration across pod restarts. Without it, a
+    # restarted pod re-enrolls with the same name and the manager rejects it
+    # as a duplicate until the old entry has been disconnected for 1h.
+    if [ -s "$PERSIST/client.keys" ]; then
+      cp "$PERSIST/client.keys" "$OSSEC/etc/client.keys"
+      chown root:wazuh "$OSSEC/etc/client.keys" 2>/dev/null || true
+      chmod 640 "$OSSEC/etc/client.keys"
+    fi
+
+    "$OSSEC/bin/wazuh-control" start
+
+    trap '"$OSSEC/bin/wazuh-control" stop; exit 0' TERM INT
+    touch "$OSSEC/logs/ossec.log"
+    tail -F "$OSSEC/logs/ossec.log" &
+
+    while true; do
+      if [ -s "$OSSEC/etc/client.keys" ]; then
+        cp -f "$OSSEC/etc/client.keys" "$PERSIST/client.keys"
+      fi
+      if ! "$OSSEC/bin/wazuh-control" status | grep -q "wazuh-agentd is running"; then
+        echo "wazuh-agentd is not running; exiting so the pod is restarted"
+        exit 1
+      fi
+      sleep 30 &
+      wait $!
+    done

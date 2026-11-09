@@ -70,6 +70,24 @@ variable "enable_archive_indexing" {
   default     = false
 }
 
+variable "enable_agent_cleanup" {
+  description = "Create the EKS agent group and auto-remove that group's long-disconnected agents."
+  type        = bool
+  default     = false
+}
+
+variable "agent_cleanup_group" {
+  description = "Agent group used by the EKS DaemonSet (must match eks-add-on/wazuh-agent agent_group)."
+  type        = string
+  default     = "eks-prod"
+}
+
+variable "agent_cleanup_older_than" {
+  description = "Remove EKS agents disconnected for longer than this (e.g. 1h, 1d)."
+  type        = string
+  default     = "1h"
+}
+
 variable "tags" {
   description = "Common resource tags."
   type        = map(string)

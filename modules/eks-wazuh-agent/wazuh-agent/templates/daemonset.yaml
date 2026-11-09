@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "wazuh-agent.name" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "wazuh-agent.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "wazuh-agent.selectorLabels" . | nindent 6 }}
+  updateStrategy:
+    {{- toYaml .Values.updateStrategy | nindent 4 }}
+  template:
+    metadata:
+      labels:
+        {{- include "wazuh-agent.selectorLabels" . | nindent 8 }}
+      annotations:
+        # Roll the pods when the agent config changes.
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "wazuh-agent.name" . }}
+      automountServiceAccountToken: false
+      # Host network/PID: agent traffic leaves from the node IP (allowed by the
+      # Wazuh SG for the VPC CIDR) and process/port inventory sees the node.
+      hostNetwork: true
+      hostPID: true
+      dnsPolicy: ClusterFirstWithHostNet
+      {{- with .Values.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: wazuh-agent
+          image: {{ include "wazuh-agent.image" . }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/bin/sh", "/config/start.sh"]
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          securityContext:
+            privileged: true
+            runAsUser: 0
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+              readOnly: true
+            - name: agent-keys
+              mountPath: /persist
+            - name: host-root
+              mountPath: /host
+              readOnly: true
+              mountPropagation: HostToContainer
+            # /var/log/containers/*.log are symlinks into /var/log/pods; mount
+            # that path too so the links resolve inside the container.
+            - name: host-var-log-pods
+              mountPath: /var/log/pods
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "wazuh-agent.name" . }}-config
+            defaultMode: 0555
+        - name: agent-keys
+          hostPath:
+            path: {{ .Values.agent.keyHostPath }}
+            type: DirectoryOrCreate
+        - name: host-root
+          hostPath:
+            path: /
+        - name: host-var-log-pods
+          hostPath:
+            path: /var/log/pods
+            type: DirectoryOrCreate

@@ -30,5 +30,9 @@ module "wazuh" {
   enable_logall_json      = var.enable_logall_json
   enable_archive_indexing = var.enable_archive_indexing
 
+  enable_agent_cleanup     = var.enable_agent_cleanup
+  agent_cleanup_group      = var.agent_cleanup_group
+  agent_cleanup_older_than = var.agent_cleanup_older_than
+
   tags = var.tags
 }

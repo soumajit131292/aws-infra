@@ -1,0 +1,77 @@
+# Wazuh agent DaemonSet — one agent per node, reporting to an external manager
+# (the Wazuh all-in-one EC2 in security/wazuh).
+
+image:
+  registry: docker.io
+  repository: wazuh/wazuh-agent
+  tag: 4.9.0
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+manager:
+  # Private IP / DNS of the Wazuh manager. REQUIRED.
+  address: ""
+  port: 1514      # agent reporting
+  enrollmentPort: 1515
+
+agent:
+  # Wazuh group assigned at enrollment. Must exist on the manager
+  # (created by the wazuh-server module's agent maintenance association).
+  group: eks-prod
+  # Static labels attached to every agent (shown in the dashboard).
+  labels:
+    cluster: ""
+  # Host directory used to persist the agent key (client.keys) per node, so a
+  # pod restart reuses the same registration instead of re-enrolling.
+  keyHostPath: /var/lib/wazuh-agent
+
+collect:
+  # Node system logs (present on AL2 nodes; missing files are skipped with a warning).
+  systemLogs:
+    - /host/var/log/messages
+    - /host/var/log/secure
+  # All pod/container stdout logs from the node. OFF by default: the manager
+  # indexes every event into wazuh-archives-* (logall_json + archive indexing
+  # are on), so this can fill the indexer volume quickly.
+  containerLogs: false
+
+fim:
+  enabled: true
+  # Scan interval in seconds (12h).
+  frequency: 43200
+  directories:
+    - /host/etc
+    - /host/usr/bin
+    - /host/usr/sbin
+    - /host/bin
+    - /host/sbin
+  ignore:
+    - /host/etc/mtab
+    - /host/etc/hosts.deny
+    - /host/etc/random-seed
+    - /host/etc/adjtime
+
+rootcheck:
+  enabled: true
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Run on every node, including tainted ones.
+tolerations:
+  - operator: Exists
+
+nodeSelector: {}
+
+priorityClassName: system-node-critical
+
+updateStrategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1

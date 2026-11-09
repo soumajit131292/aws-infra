@@ -74,6 +74,15 @@ output "alarm_suppression_lambda_name" {
   value       = aws_lambda_function.alarm_actions_controller.function_name
 }
 
+output "alarm_suppression_dynamodb_alarm_names" {
+  description = "CloudWatch alarms monitoring storage utilization and throttling for the alarm-suppression-state DynamoDB table."
+  value = {
+    storage_high   = aws_cloudwatch_metric_alarm.ddb_suppression_storage.alarm_name
+    read_throttle  = aws_cloudwatch_metric_alarm.ddb_suppression_read_throttle.alarm_name
+    write_throttle = aws_cloudwatch_metric_alarm.ddb_suppression_write_throttle.alarm_name
+  }
+}
+
 output "sns_alerts_topic_arns_by_region" {
   description = "Map of dr-alerts SNS topic ARNs by region."
   value = {

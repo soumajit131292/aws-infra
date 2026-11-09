@@ -9,7 +9,7 @@ single Docker/Postgres host + manual console runbook.
 | Layer | Spec step | Here | Path |
 |-------|-----------|------|------|
 | Wazuh All-In-One server | Step 1 | Ubuntu 24.04 EC2 (`r6i.large`, private, SSM) + OSS installer in user_data + dedicated indexer EBS volume | `modules/wazuh-server`, `security/wazuh` |
-| Agent on "container host" | Step 2 | **Wazuh agent DaemonSet** on EKS (nodes are ephemeral — a hand-install would not survive node recycling) | `security/wazuh/k8s/wazuh-agent-daemonset.yaml` |
+| Agent on "container host" | Step 2 | **Wazuh agent DaemonSet** on EKS via a vendored Helm chart (nodes are ephemeral — a hand-install would not survive node recycling). Long-disconnected agents of scaled-in/replaced nodes are auto-removed on the manager | `modules/eks-wazuh-agent`, `eks-add-on/wazuh-agent`; cleanup in `modules/wazuh-server/agent-maintenance.tf` |
 | Zeek network sensor | Step 3 | **Dedicated Zeek EC2 + VPC Traffic Mirroring** of node ENIs (VPC CNI has no single bridge to sniff on-node) | `modules/zeek-sensor`, `security/zeek-sensor` |
 | Zeek logs → Wazuh | Step 4 | On-sensor Wazuh agent tails http/dns/conn JSON logs | in `modules/zeek-sensor` user_data |
 | Sizing / retention | Step 5 | Zeek 48h log-prune cron (automated); OpenSearch ISM = manual, see below | — |
@@ -35,8 +35,19 @@ cd ../zeek-sensor
 terraform init && terraform apply
 
 # 3. Wazuh agent DaemonSet on EKS
-WAZUH_IP=$(terraform -chdir=../wazuh output -raw wazuh_private_ip)
-sed "s/REPLACE_WITH_WAZUH_PRIVATE_IP/$WAZUH_IP/" ../wazuh/k8s/wazuh-agent-daemonset.yaml | kubectl apply -f -
+#   a) mirror the agent image to ECR (from the repo root)
+./envs/prod/eu-west-1/eks-add-on/wazuh-agent/scripts/mirror-images-to-ecr.sh
+#   b) install (manager IP is read from the wazuh stack's remote state)
+cd ../../eks-add-on/wazuh-agent
+terraform init && terraform apply
+```
+
+The `eks-prod` agent group and the disconnected-agent cleanup cron are created
+on the manager by step 1 (`enable_agent_cleanup = true`, applied over SSM).
+Check what the cleanup would remove without deleting anything:
+
+```bash
+sudo /usr/local/sbin/wazuh-agent-cleanup.sh --dry-run
 ```
 
 ## Discover EKS node ENIs for mirroring (Zeek sensor input)
@@ -61,9 +72,7 @@ Put the IDs into `zeek-sensor/terraform.tfvars` → `source_network_interface_id
    aws ssm start-session --target <wazuh_instance_id> --region eu-west-1
    sudo tar -xf /root/wazuh-install-files.tar -O wazuh-install-files/wazuh-passwords.txt
    ```
-2. **OpenSearch ISM retention (Step 5)** — in the dashboard, Index Management →
-   create an ISM policy transitioning/deleting indices after 7–14 days.
-3. **Confirm agents enrolled** — dashboard → Agents (expect one per EKS node +
+2. **Confirm agents enrolled** — dashboard → Agents (expect one per EKS node +
    the Zeek sensor).
 
 ## Cost note

@@ -9,16 +9,10 @@
 ## operationally meaningful ones. All route to the same dr_alerts SNS topic.
 ##############################################################################
 
-variable "dynamodb_table_size_threshold_bytes" {
-  description = "Alarm when the alarm-suppression table size exceeds this (bytes). Default 500 MB — the table should stay tiny."
-  type        = number
-  default     = 524288000
-}
-
 # "Storage utilization" signal (TableSizeBytes is published ~every 6 hours).
 resource "aws_cloudwatch_metric_alarm" "ddb_suppression_storage" {
-  alarm_name          = "${var.name_prefix}-ddb-suppression-storage-high"
-  alarm_description   = "alarm-suppression-state table storage unexpectedly high."
+  alarm_name          = "${var.name_prefix}-alarm-suppression-state-storage-high"
+  alarm_description   = "${aws_dynamodb_table.alarm_suppression_state.name} storage utilization unexpectedly exceeded ${var.dynamodb_table_size_threshold_bytes} bytes."
   namespace           = "AWS/DynamoDB"
   metric_name         = "TableSizeBytes"
   dimensions          = { TableName = aws_dynamodb_table.alarm_suppression_state.name }
@@ -36,8 +30,8 @@ resource "aws_cloudwatch_metric_alarm" "ddb_suppression_storage" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "ddb_suppression_read_throttle" {
-  alarm_name          = "${var.name_prefix}-ddb-suppression-read-throttle"
-  alarm_description   = "Read throttling on the alarm-suppression-state table."
+  alarm_name          = "${var.name_prefix}-alarm-suppression-state-read-throttle"
+  alarm_description   = "Read throttling on ${aws_dynamodb_table.alarm_suppression_state.name}."
   namespace           = "AWS/DynamoDB"
   metric_name         = "ReadThrottleEvents"
   dimensions          = { TableName = aws_dynamodb_table.alarm_suppression_state.name }
@@ -55,8 +49,8 @@ resource "aws_cloudwatch_metric_alarm" "ddb_suppression_read_throttle" {
 }
 
 resource "aws_cloudwatch_metric_alarm" "ddb_suppression_write_throttle" {
-  alarm_name          = "${var.name_prefix}-ddb-suppression-write-throttle"
-  alarm_description   = "Write throttling on the alarm-suppression-state table."
+  alarm_name          = "${var.name_prefix}-alarm-suppression-state-write-throttle"
+  alarm_description   = "Write throttling on ${aws_dynamodb_table.alarm_suppression_state.name}."
   namespace           = "AWS/DynamoDB"
   metric_name         = "WriteThrottleEvents"
   dimensions          = { TableName = aws_dynamodb_table.alarm_suppression_state.name }

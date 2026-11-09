@@ -19,6 +19,13 @@ alert_email_subscribers = [
 enable_logall_json      = true
 enable_archive_indexing = true
 
+# EKS node agents (eks-add-on/wazuh-agent): create their group and remove
+# agents of that group disconnected > 1h (scaled-in / replaced nodes).
+# Applied over SSM; the instance itself is not modified.
+enable_agent_cleanup     = true
+agent_cleanup_group      = "eks-prod"
+agent_cleanup_older_than = "1h"
+
 # REQUIRED: lock the dashboard + SSH to your admin/VPN ranges before apply.
 # Leaving this empty means NO 443/22 ingress is created (SSM still works).
 admin_cidrs = []

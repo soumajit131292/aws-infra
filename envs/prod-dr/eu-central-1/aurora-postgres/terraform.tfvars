@@ -16,7 +16,7 @@ preferred_maintenance_window = "sun:04:00-sun:05:00"
 port                         = 5432
 
 deletion_protection       = false
-skip_final_snapshot       = false
+skip_final_snapshot       = true
 final_snapshot_identifier = "prod-dr-aurora-postgres-final-global-rebuild-20260801"
 apply_immediately         = true
 

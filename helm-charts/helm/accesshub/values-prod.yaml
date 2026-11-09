@@ -221,7 +221,7 @@ loginAuthSourcePersistence:
   service: loginmodsvc
   mountPath: /app/loginModule/registeredAuthenticationSource
   subPath: loginmodsvc/registeredAuthenticationSource
-targetAppResourcesPersistence:
+targetAppResourcesPersistence: #done
   enabled: true
   claimName: efs-claim
   mountPath: /app/TargetAppResources/resources/ApplicationRegistration
