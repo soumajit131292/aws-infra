@@ -27,14 +27,27 @@ agent:
   keyHostPath: /var/lib/wazuh-agent
 
 collect:
-  # Node system logs (present on AL2 nodes; missing files are skipped with a warning).
-  systemLogs:
-    - /host/var/log/messages
-    - /host/var/log/secure
-  # All pod/container stdout logs from the node. OFF by default: the manager
-  # indexes every event into wazuh-archives-* (logall_json + archive indexing
-  # are on), so this can fill the indexer volume quickly.
-  containerLogs: false
+  # Plain-file node system logs, e.g. /host/var/log/messages and
+  # /host/var/log/secure on AL2 nodes. Empty by default: AL2023 nodes log only
+  # to journald, so these files do not exist and logcollector errors on them.
+  systemLogs: []
+
+  # Pod stdout/stderr logs, only for these namespaces. Node log files are named
+  # /var/log/containers/<pod>_<namespace>_<container>-<id>.log. Keep this list
+  # short: the manager indexes every event into wazuh-archives-* (logall_json
+  # + archive indexing are on), so noisy namespaces fill the indexer volume.
+  containerLogNamespaces: []
+
+  # Node journald (AL2023 nodes log only to journald). Each filter becomes its
+  # own <localfile> block, so entries are OR-ed: an event matching any one of
+  # them is collected.
+  journald:
+    enabled: false
+    filters:
+      - field: _SYSTEMD_UNIT
+        regex: '^sshd\.service$'
+      - field: SYSLOG_IDENTIFIER
+        regex: '^sudo$'
 
 fim:
   enabled: true

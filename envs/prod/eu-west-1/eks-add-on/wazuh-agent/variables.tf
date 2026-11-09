@@ -40,8 +40,14 @@ variable "image_tag" {
   default     = "4.14.10-amd64-platform"
 }
 
-variable "collect_container_logs" {
-  description = "Ship all pod stdout logs to Wazuh (high index volume)."
+variable "container_log_namespaces" {
+  description = "Namespaces whose pod logs are shipped to Wazuh."
+  type        = list(string)
+  default     = []
+}
+
+variable "enable_journald" {
+  description = "Collect node journald sshd and sudo events."
   type        = bool
   default     = false
 }

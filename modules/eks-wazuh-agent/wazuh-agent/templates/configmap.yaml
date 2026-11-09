@@ -75,7 +75,8 @@ data:
         <check_dev>yes</check_dev>
         <check_sys>yes</check_sys>
         <check_pids>yes</check_pids>
-        <check_ports>yes</check_ports>
+        <!-- needs netstat (not in the image); syscollector reports ports -->
+        <check_ports>no</check_ports>
         <check_if>yes</check_if>
         <frequency>43200</frequency>
         <rootkit_files>etc/shared/rootkit_files.txt</rootkit_files>
@@ -108,11 +109,22 @@ data:
       </localfile>
       {{- end }}
 
-      {{- if .Values.collect.containerLogs }}
+      {{- range .Values.collect.containerLogNamespaces }}
       <localfile>
         <log_format>syslog</log_format>
-        <location>/host/var/log/containers/*.log</location>
+        <location>/host/var/log/containers/*_{{ . }}_*.log</location>
+        <label key="k8s.namespace">{{ . }}</label>
       </localfile>
+      {{- end }}
+
+      {{- if .Values.collect.journald.enabled }}
+      {{- range .Values.collect.journald.filters }}
+      <localfile>
+        <log_format>journald</log_format>
+        <location>journald</location>
+        <filter field="{{ .field }}">{{ .regex }}</filter>
+      </localfile>
+      {{- end }}
       {{- end }}
 
       <localfile>

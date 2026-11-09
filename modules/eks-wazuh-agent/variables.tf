@@ -49,8 +49,14 @@ variable "image_tag" {
   type        = string
 }
 
-variable "collect_container_logs" {
-  description = "Ship all pod stdout logs from /var/log/containers to Wazuh (high index volume)"
+variable "container_log_namespaces" {
+  description = "Namespaces whose pod stdout/stderr logs are shipped to Wazuh (every event is indexed; keep it short)"
+  type        = list(string)
+  default     = []
+}
+
+variable "enable_journald" {
+  description = "Collect node journald events matching the chart's journald filters (sshd and sudo by default)"
   type        = bool
   default     = false
 }

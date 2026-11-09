@@ -18,5 +18,6 @@ module "wazuh_agent" {
   image_repository = var.image_repository
   image_tag        = var.image_tag
 
-  collect_container_logs = var.collect_container_logs
+  container_log_namespaces = var.container_log_namespaces
+  enable_journald          = var.enable_journald
 }

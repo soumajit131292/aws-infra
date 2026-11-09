@@ -2,7 +2,10 @@
 ## Agent maintenance for ephemeral EKS nodes (applied via SSM, not user_data,
 ## so enabling it never stops/replaces the running instance).
 ##
-##  1. Creates the agent group the EKS DaemonSet enrolls into.
+##  0. Waits for the user_data installer (the association also runs on a
+##     freshly rebuilt instance, before Wazuh is installed).
+##  1. Creates the agent group the EKS DaemonSet enrolls into and gives it the
+##     rootcheck signature files from the default group.
 ##  2. Installs a cron job that removes agents of that group which have been
 ##     disconnected longer than agent_cleanup_older_than. EKS nodes that are
 ##     scaled in or replaced never come back under the same name, so without
@@ -30,10 +33,37 @@ resource "aws_ssm_association" "agent_maintenance" {
     commands = <<-EOC
       set -euo pipefail
 
+      # --- 0. Wait for the user_data installer ------------------------------
+      # On a fresh/rebuilt instance this association runs while the Wazuh
+      # installer (~15-20 min) is still going; wait for the manager first.
+      for _ in $(seq 1 90); do
+        if [ -x /var/ossec/bin/agent_groups ] && systemctl is-active --quiet wazuh-manager; then
+          break
+        fi
+        sleep 20
+      done
+      if ! systemctl is-active --quiet wazuh-manager; then
+        echo "wazuh-manager not active after 30 min; giving up" >&2
+        exit 1
+      fi
+
       # --- 1. Agent group for EKS node agents -----------------------------
       if [ ! -d "/var/ossec/etc/shared/${var.agent_cleanup_group}" ]; then
         /var/ossec/bin/agent_groups -a -g "${var.agent_cleanup_group}" -q
       fi
+
+      # New groups only get agent.conf. Agents replace their local
+      # etc/shared/ with the group's files, so without these rootcheck warns
+      # "No rootcheck_files file". Copy them from the default group.
+      for f in rootkit_files.txt rootkit_trojans.txt; do
+        if [ -f "/var/ossec/etc/shared/default/$f" ]; then
+          cp -f "/var/ossec/etc/shared/default/$f" "/var/ossec/etc/shared/${var.agent_cleanup_group}/$f"
+          chown wazuh:wazuh "/var/ossec/etc/shared/${var.agent_cleanup_group}/$f"
+          chmod 660 "/var/ossec/etc/shared/${var.agent_cleanup_group}/$f"
+        else
+          echo "WARNING: /var/ossec/etc/shared/default/$f not found; rootcheck signatures not distributed" >&2
+        fi
+      done
 
       # --- 2. Cleanup script ------------------------------------------------
       cat > /usr/local/sbin/wazuh-agent-cleanup.sh <<'SCRIPT'

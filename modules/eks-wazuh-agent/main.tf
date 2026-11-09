@@ -17,7 +17,10 @@ locals {
       }
     }
     collect = {
-      containerLogs = var.collect_container_logs
+      containerLogNamespaces = var.container_log_namespaces
+      journald = {
+        enabled = var.enable_journald
+      }
     }
   })
 }

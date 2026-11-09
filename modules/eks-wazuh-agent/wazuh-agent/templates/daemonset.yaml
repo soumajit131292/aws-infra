@@ -72,6 +72,19 @@ spec:
             - name: host-var-log-pods
               mountPath: /var/log/pods
               readOnly: true
+            {{- if .Values.collect.journald.enabled }}
+            # journald is read through libsystemd at its default paths, scoped
+            # to the local machine-id, so mount the node's journal and id there.
+            - name: host-journal
+              mountPath: /var/log/journal
+              readOnly: true
+            - name: host-run-journal
+              mountPath: /run/log/journal
+              readOnly: true
+            - name: host-machine-id
+              mountPath: /etc/machine-id
+              readOnly: true
+            {{- end }}
       volumes:
         - name: config
           configMap:
@@ -88,3 +101,17 @@ spec:
           hostPath:
             path: /var/log/pods
             type: DirectoryOrCreate
+        {{- if .Values.collect.journald.enabled }}
+        - name: host-journal
+          hostPath:
+            path: /var/log/journal
+            type: DirectoryOrCreate
+        - name: host-run-journal
+          hostPath:
+            path: /run/log/journal
+            type: DirectoryOrCreate
+        - name: host-machine-id
+          hostPath:
+            path: /etc/machine-id
+            type: File
+        {{- end }}
