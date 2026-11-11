@@ -50,6 +50,68 @@ Check what the cleanup would remove without deleting anything:
 sudo /usr/local/sbin/wazuh-agent-cleanup.sh --dry-run
 ```
 
+## Upgrading the Wazuh server (rebuild) — 4.9 → 4.14.10
+
+The server is installed by user_data, which only runs on first boot, so
+changing `wazuh_version` does **not** upgrade a running server. The upgrade is a
+clean rebuild with the new installer (`packages.wazuh.com/4.14/wazuh-install.sh`
+pins **4.14.10**; the matching agent image is `wazuh/wazuh-agent:4.14.10`).
+This **discards the existing indices** — acceptable here because the SIEM is not
+in use yet. For an in-use server, follow Wazuh's in-place upgrade guide instead.
+
+The private IP is pinned (`wazuh_private_ip`) so the rebuilt server keeps the
+address the Zeek and EKS agents report to.
+
+```bash
+cd envs/prod/eu-west-1/security/wazuh
+
+# 1. Pin the CURRENT IP: put this value in terraform.tfvars -> wazuh_private_ip
+terraform output -raw wazuh_private_ip
+
+# 2. Review. A plain plan shows an in-place update of the instance (user_data
+#    changed) — do NOT apply that; it only stops/starts the VM.
+terraform plan
+
+# 3. Rebuild instance + indexer volume with the 4.14 installer
+terraform apply \
+  -replace='module.wazuh.aws_instance.this' \
+  -replace='module.wazuh.aws_ebs_volume.indexer_data'
+```
+
+After apply (the installer takes ~15–20 min), on the server via SSM:
+
+```bash
+sudo tail -f /var/log/cloud-init-output.log          # wait for the installer to finish
+sudo /var/ossec/bin/wazuh-control info               # WAZUH_VERSION="v4.14.10"
+systemctl is-active wazuh-manager wazuh-indexer wazuh-dashboard filebeat
+sudo tar -xOf /root/wazuh-install-files.tar wazuh-install-files/wazuh-passwords.txt   # new admin password
+```
+
+The new manager has no key for the Zeek sensor, so re-enroll it (on the Zeek
+sensor via SSM). The agent must not be newer than the manager:
+
+```bash
+sudo /var/ossec/bin/wazuh-control info               # must be <= v4.14.10
+sudo /var/ossec/bin/agent-auth -m <wazuh_private_ip> -A prod-zeek-sensor
+sudo systemctl restart wazuh-agent
+```
+
+## Zeek sensor config (applied over SSM)
+
+`aws_ssm_association.sensor_config` (in `modules/zeek-sensor`) converges the
+running sensor; it re-runs whenever its script changes and is safe to re-run:
+
+- points the agent at the Wazuh server's current IP (from the wazuh stack's
+  remote state) and enrolls it only if it has no key yet
+- pins `wazuh-agent` to `wazuh_agent_version` and holds the package
+- ships `conn dns http ssl notice weird` (`zeek_log_files`) as one managed block
+- `zeekctl cron` every 5 min, so a crashed Zeek restarts on its own
+- prunes dated archive dirs older than 48h (never `logs/current/`)
+
+The instance ignores `user_data` changes (it only runs on first boot), so a
+new Wazuh server IP no longer stops/starts the sensor. Check the last run:
+AWS Console → Systems Manager → State Manager → `prod-zeek-sensor-sensor-config`.
+
 ## Discover EKS node ENIs for mirroring (Zeek sensor input)
 
 Managed-node-group instances are ephemeral, so refresh this list after scaling

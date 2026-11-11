@@ -46,6 +46,18 @@ variable "wazuh_agent_name" {
   default     = null
 }
 
+variable "wazuh_agent_version" {
+  description = "Exact wazuh-agent APT package version. Must not be newer than the Wazuh manager; the package is held so apt upgrades cannot move it."
+  type        = string
+  default     = "4.14.10-1"
+}
+
+variable "zeek_log_files" {
+  description = "Zeek logs (names under /opt/zeek/logs/current, without .log) shipped to Wazuh. Watched with a wildcard so a log Zeek has not created yet (e.g. notice.log before the first notice) is rescanned instead of failing. Every event is indexed on the manager; conn and http are the high-volume ones."
+  type        = list(string)
+  default     = ["conn", "dns", "http", "ssl", "notice", "weird"]
+}
+
 variable "capture_interface" {
   description = "Interface Zeek listens on. For a mirror target this is the primary ENI (ens5 on Nitro)."
   type        = string
