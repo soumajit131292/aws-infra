@@ -185,6 +185,14 @@ resource "aws_instance" "this" {
   }
 
   tags = merge(var.tags, { Name = var.name })
+
+  # The SSM parameter tracks Ubuntu's "current" image, which moves on every
+  # Canonical release; without this every plan would rebuild the SIEM (and
+  # wipe the indexer volume via indexer_data). Rebuild deliberately with
+  # terraform apply -replace=<this resource>.
+  lifecycle {
+    ignore_changes = [ami]
+  }
 }
 
 resource "aws_ebs_volume" "indexer_data" {

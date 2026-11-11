@@ -196,9 +196,11 @@ resource "aws_instance" "this" {
   # user_data only runs on first boot, so editing it never changes a running
   # sensor — it only stops/starts it. Ongoing config (manager IP, agent
   # version, log list, crons) is applied by aws_ssm_association.sensor_config.
-  # To rebuild with new user_data: terraform apply -replace=<this resource>.
+  # ami: the SSM parameter tracks Ubuntu's "current" image, which moves on
+  # every Canonical release and would otherwise force a rebuild.
+  # To rebuild deliberately: terraform apply -replace=<this resource>.
   lifecycle {
-    ignore_changes = [user_data]
+    ignore_changes = [ami, user_data]
   }
 
   root_block_device {
