@@ -166,7 +166,7 @@ resource "aws_eks_node_group" "core" {
   node_role_arn   = aws_iam_role.eks_nodes.arn
   subnet_ids      = [each.value]
 
-  instance_types = ["m6i.xlarge"]
+  instance_types = var.core_node_instance_types
   capacity_type  = "ON_DEMAND"
 
   scaling_config {

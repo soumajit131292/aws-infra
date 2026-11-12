@@ -1,5 +1,14 @@
 global:
   imageRegistry: 495711089104.dkr.ecr.eu-west-1.amazonaws.com
+  # Extra env for every service container (per-service: <svc>.extraEnv).
+  extraEnv:
+    # The CloudWatch Observability add-on injects the OpenTelemetry Java agent,
+    # whose X-Ray sampler logs a ParentBasedSampler WARN every 10s. "none"
+    # silences only the agent's own stderr logging; application logs and
+    # traces/metrics are unaffected. Set back to "simple" (the default) when
+    # debugging the agent itself.
+    - name: OTEL_JAVAAGENT_LOGGING
+      value: none
   runtime:
     existingSecret: accesshub-runtime
     baseUrl: ''

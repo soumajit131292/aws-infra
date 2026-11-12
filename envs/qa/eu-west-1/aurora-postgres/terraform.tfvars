@@ -1,0 +1,49 @@
+region                           = "eu-west-1"
+cluster_identifier               = "qa-aurora-postgres"
+cloudwatch_log_retention_in_days = 30
+database_name                    = "accesshub"
+
+# QA's own secret — create it before apply (see README). Never point this at
+# the prod secret.
+db_credentials_secret_name = "qa/aurora/app-credentials"
+
+# Keep engine_version in step with prod so QA tests the same engine.
+engine_version = "16.8"
+
+# QA: one smaller instance (prod: 2 x db.r6g.large).
+instance_class = "db.t4g.medium"
+instance_count = 1
+
+backup_retention_period      = 1
+preferred_backup_window      = "03:00-04:00"
+preferred_maintenance_window = "sun:04:00-sun:05:00"
+port                         = 5432
+
+# QA can be torn down and rebuilt.
+deletion_protection       = false
+skip_final_snapshot       = true
+final_snapshot_identifier = "qa-aurora-postgres-final"
+
+apply_immediately               = true
+storage_encrypted               = true
+create_rds_kms_key              = true
+rds_kms_key_alias               = "qa-aurora-postgres"
+copy_tags_to_snapshot           = true
+enabled_cloudwatch_logs_exports = ["postgresql"]
+performance_insights_enabled    = true
+enhanced_monitoring_interval    = 0
+auto_minor_version_upgrade      = true
+
+# Same access path as prod (apps reach the DB only through the proxy).
+enable_rds_proxy                  = true
+rds_proxy_name                    = "qa-aurora-postgres-proxy"
+rds_proxy_iam_auth                = "DISABLED"
+enforce_rds_proxy_only            = true
+rds_proxy_max_connections_percent = 80
+
+allowed_cidr_blocks = []
+
+tags = {
+  env   = "qa"
+  owner = "terraform-accesshub-platform"
+}

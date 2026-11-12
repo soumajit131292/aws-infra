@@ -66,15 +66,27 @@ resource "aws_subnet" "private_db" {
 }
 
 ###############################
-##       NAT Gateway (per AZ) 
+##       NAT Gateway (per AZ)
 ###############################
+locals {
+  # single_nat_gateway: one NAT in the first public subnet (by key), shared by
+  # every AZ. Cheaper for non-prod; that AZ becomes a single point of failure
+  # for egress.
+  nat_subnet_keys = var.single_nat_gateway ? [sort(keys(var.public_subnets))[0]] : keys(var.public_subnets)
+
+  # AZ key -> NAT key whose gateway that AZ's private routes use.
+  nat_key_for = {
+    for k in keys(var.public_subnets) : k => (var.single_nat_gateway ? local.nat_subnet_keys[0] : k)
+  }
+}
+
 resource "aws_eip" "nat" {
-  for_each = aws_subnet.public
+  for_each = { for k in local.nat_subnet_keys : k => aws_subnet.public[k] }
   domain   = "vpc"
 }
 
 resource "aws_nat_gateway" "this" {
-  for_each      = aws_subnet.public
+  for_each      = { for k in local.nat_subnet_keys : k => aws_subnet.public[k] }
   subnet_id     = each.value.id
   allocation_id = aws_eip.nat[each.key].id
 }
@@ -420,7 +432,7 @@ resource "aws_route" "private_to_fw" {
   destination_cidr_block = "0.0.0.0/0"
 
   vpc_endpoint_id = var.enable_network_firewall ? local.firewall_endpoint_by_az[each.value.availability_zone] : null
-  nat_gateway_id  = var.enable_network_firewall ? null : aws_nat_gateway.this[each.key].id
+  nat_gateway_id  = var.enable_network_firewall ? null : aws_nat_gateway.this[local.nat_key_for[each.key]].id
 }
 
 
@@ -431,7 +443,7 @@ resource "aws_route" "fw_to_nat" {
 
   route_table_id         = each.value.id
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.this[each.key].id
+  nat_gateway_id         = aws_nat_gateway.this[local.nat_key_for[each.key]].id
 }
 
 resource "aws_subnet" "firewall" {

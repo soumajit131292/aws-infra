@@ -329,6 +329,9 @@ spec:
             - name: GRC_API_ACCESS_PWD
               value: {{ $root.Values.global.runtime.grcApiAccessPassword | quote }}
             {{- end }}
+            {{- with (concat ($root.Values.global.extraEnv | default list) ($svc.extraEnv | default list)) }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
           {{- if or $mountLogPvc $mountLoginAuthPvc $mountTargetAppResourcesPvc $mountSchemaAssetsPvc $mountAccesshubFilesPvc $mountAuthFilesPvc }}
           volumeMounts:
             {{- if $mountLogPvc }}

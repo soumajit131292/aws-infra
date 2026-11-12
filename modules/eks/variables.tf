@@ -29,6 +29,12 @@ variable "deletion_protection" {
   default     = true
 }
 
+variable "core_node_instance_types" {
+  description = "Instance types for the core node groups (one group per private app subnet)."
+  type        = list(string)
+  default     = ["m6i.xlarge"]
+}
+
 variable "core_node_max_pods" {
   description = "Maximum number of pods scheduled per core node."
   type        = number

@@ -22,6 +22,12 @@ variable "firewall_subnets" {
   type = map(string)
 }
 
+variable "single_nat_gateway" {
+  description = "Create one NAT gateway (first public subnet by key) shared by all AZs instead of one per AZ. Cheaper; for non-prod."
+  type        = bool
+  default     = false
+}
+
 variable "enable_network_firewall" {
   description = "Enable AWS Network Firewall and route private app egress through firewall endpoints."
   type        = bool
