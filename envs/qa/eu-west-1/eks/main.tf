@@ -75,3 +75,33 @@ resource "aws_eks_access_policy_association" "qa_jumphost" {
     type = "cluster"
   }
 }
+
+#############################################
+# IAM: let the QA jumphost role describe the QA cluster
+#
+# The access entry above grants Kubernetes RBAC, but `aws eks
+# update-kubeconfig` first calls eks:DescribeCluster (an IAM action), and the
+# QA SSM role only carries AmazonSSMManagedInstanceCore. Scoped to the QA
+# cluster ARN only — it grants nothing on prod or any other cluster.
+#############################################
+data "aws_caller_identity" "current" {}
+
+locals {
+  qa_jumphost_role_name = element(split("/", data.terraform_remote_state.vpc.outputs.ec2_ssm_role_arn), length(split("/", data.terraform_remote_state.vpc.outputs.ec2_ssm_role_arn)) - 1)
+  qa_cluster_arn        = "arn:aws:eks:${var.region}:${data.aws_caller_identity.current.account_id}:cluster/${module.eks.cluster_name}"
+}
+
+resource "aws_iam_role_policy" "qa_jumphost_eks_describe" {
+  name = "${module.eks.cluster_name}-jumphost-eks-describe"
+  role = local.qa_jumphost_role_name
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid      = "DescribeQaCluster"
+      Effect   = "Allow"
+      Action   = ["eks:DescribeCluster"]
+      Resource = local.qa_cluster_arn
+    }]
+  })
+}
