@@ -11,6 +11,7 @@ filters:
     - dev-ubuntu-tools
     - prod-ubuntu-jumphost
     - prod-dr-ubuntu-jumphost
+    - qa-ubuntu-jumphost
   instance-state-name: running
 
 hostnames:
@@ -18,14 +19,14 @@ hostnames:
 
 compose:
   ansible_connection: "'amazon.aws.aws_ssm'"
-  ansible_user: "'ubuntu' if (tags.env is defined and tags.env in ['prod', 'prod-dr']) else 'ssm-user'"
+  ansible_user: "'ubuntu' if (tags.env is defined and tags.env in ['prod', 'prod-dr', 'qa']) else 'ssm-user'"
   ansible_remote_tmp: "'/tmp/.ansible/tmp'"
   ansible_aws_ssm_region: "placement.region"
   # Required by amazon.aws.aws_ssm to stage module payloads.
   ansible_aws_ssm_bucket_name: "'crave-infra-terraform-state-bucket'"
 
 groups:
-  ubuntu_vm: "tags.Name is defined and tags.Name in ['dev-ubuntu-tools', 'prod-ubuntu-jumphost', 'prod-dr-ubuntu-jumphost']"
+  ubuntu_vm: "tags.Name is defined and tags.Name in ['dev-ubuntu-tools', 'prod-ubuntu-jumphost', 'prod-dr-ubuntu-jumphost', 'qa-ubuntu-jumphost']"
 
 keyed_groups:
   - prefix: env

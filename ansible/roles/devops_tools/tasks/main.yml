@@ -4,6 +4,12 @@
     msg: "This role supports Ubuntu only."
   when: ansible_distribution != "Ubuntu"
 
+- name: Set binary architecture suffix
+  set_fact:
+    devops_tools_arch: "{{ 'arm64' if ansible_architecture in ['aarch64', 'arm64'] else 'amd64' }}"
+    # AWS CLI names its packages by kernel arch, not Go arch.
+    devops_tools_awscli_arch: "{{ 'aarch64' if ansible_architecture in ['aarch64', 'arm64'] else 'x86_64' }}"
+
 ############################
 # APT HARDENING
 ############################
@@ -59,267 +65,229 @@
 
 - name: Add Docker repository
   apt_repository:
-    repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+    repo: "deb [arch={{ devops_tools_arch }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
     filename: docker
     state: present
 
-- name: Install pinned Docker version
-  block:
-    - name: Try installing pinned Docker version
-      ansible.builtin.apt:
-        name:
-          - "docker-ce={{ devops_tools_docker_version }}"
-          - "docker-ce-cli={{ devops_tools_docker_version }}"
-        state: present
-        update_cache: true
-      when: devops_tools_docker_version | default("") | length > 0
+# Hold is lifted first so a version bump in defaults can be applied; it is
+# re-applied below. No fallback: an unavailable pin fails the run instead of
+# silently installing whatever is latest.
+- name: Release Docker package hold
+  command: apt-mark unhold docker-ce docker-ce-cli
+  changed_when: false
+  failed_when: false
 
-    - name: Install latest Docker packages when pin is not set
-      ansible.builtin.apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-        state: present
-        update_cache: true
-      when: devops_tools_docker_version | default("") | length == 0
-  rescue:
-    - name: Fallback to latest Docker packages if pinned version is unavailable
-      ansible.builtin.apt:
-        name:
-          - docker-ce
-          - docker-ce-cli
-        state: present
-        update_cache: true
+- name: Install pinned Docker version
+  apt:
+    name:
+      - "docker-ce={{ devops_tools_docker_version }}"
+      - "docker-ce-cli={{ devops_tools_docker_version }}"
+    state: present
+    update_cache: true
+    allow_downgrade: true
 
 - name: Hold Docker packages
   command: apt-mark hold docker-ce docker-ce-cli
   changed_when: false
 
-- name: Ensure Docker running
-  service:
-    name: docker
-    enabled: true
-    state: started
+# systemctl via shell instead of the service/systemd module: over the
+# amazon.aws.aws_ssm connection that module fails with "Cannot send input
+# after starting communication", while plain commands work.
+- name: Ensure Docker enabled and running
+  shell: |
+    set -eu
+    changed=0
+    systemctl is-enabled --quiet docker || { systemctl enable docker; changed=1; }
+    systemctl is-active --quiet docker || { systemctl start docker; changed=1; }
+    echo "changed=$changed"
+  register: docker_service
+  changed_when: "'changed=1' in docker_service.stdout"
 
 - name: Validate Docker health
   command: docker info
   changed_when: false
 
 ############################
-# KUBECTL (SHA Driven Idempotent)
+# KUBECTL (pinned version + pinned SHA256)
 ############################
 
 - name: Check kubectl version
-  command: kubectl version --client --output=yaml
+  command: kubectl version --client --output=json
   register: kubectl_check
   changed_when: false
   failed_when: false
 
-- name: Determine if kubectl upgrade required
+- name: Determine if kubectl install required
   set_fact:
-    kubectl_upgrade_required: >-
-      {{
-        (kubectl_check.rc != 0)
-        or
-        (kubectl_check.stdout is not search('v' ~ devops_tools_kubectl_version))
-      }}
+    kubectl_install_required: >-
+      {{ kubectl_check.rc != 0
+         or (kubectl_check.stdout | from_json).clientVersion.gitVersion != ('v' ~ devops_tools_kubectl_version) }}
 
-- name: Determine kubectl architecture suffix
-  set_fact:
-    devops_tools_kubectl_arch: "{{ 'arm64' if ansible_architecture in ['aarch64', 'arm64'] else 'amd64' }}"
-  when: kubectl_upgrade_required
-
-- name: Download kubectl if required
+- name: Download kubectl (checksum verified)
   get_url:
-    url: "https://dl.k8s.io/release/v{{ devops_tools_kubectl_version }}/bin/linux/{{ devops_tools_kubectl_arch }}/kubectl"
-    dest: "/tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}"
-    mode: "0755"
-  when: kubectl_upgrade_required
-
-- name: Resolve kubectl checksum source
-  block:
-    - name: Use provided kubectl checksum
-      set_fact:
-        devops_tools_kubectl_sha256_effective: "{{ devops_tools_kubectl_sha256 }}"
-      when: devops_tools_kubectl_sha256 is not match('^REPLACE')
-
-    - name: Download kubectl checksum from upstream
-      get_url:
-        url: "https://dl.k8s.io/release/v{{ devops_tools_kubectl_version }}/bin/linux/{{ devops_tools_kubectl_arch }}/kubectl.sha256"
-        dest: "/tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}.sha256"
-      when: devops_tools_kubectl_sha256 is match('^REPLACE')
-
-    - name: Read kubectl checksum file from target
-      command: "cat /tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}.sha256"
-      register: devops_tools_kubectl_sha256_remote
-      changed_when: false
-      when: devops_tools_kubectl_sha256 is match('^REPLACE')
-
-    - name: Set effective kubectl checksum from upstream
-      set_fact:
-        devops_tools_kubectl_sha256_effective: "{{ devops_tools_kubectl_sha256_remote.stdout | trim }}"
-      when: devops_tools_kubectl_sha256 is match('^REPLACE')
-  when: kubectl_upgrade_required
-
-- name: Verify kubectl checksum
-  shell: |
-    echo "{{ devops_tools_kubectl_sha256_effective }}  /tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}" | sha256sum -c -
-  changed_when: false
-  when: kubectl_upgrade_required
-
-- name: Install kubectl binary
-  copy:
-    src: "/tmp/kubectl_v{{ devops_tools_kubectl_version }}_linux_{{ devops_tools_kubectl_arch }}"
+    url: "https://dl.k8s.io/release/v{{ devops_tools_kubectl_version }}/bin/linux/{{ devops_tools_arch }}/kubectl"
     dest: /usr/local/bin/kubectl
+    checksum: "sha256:{{ devops_tools_kubectl_sha256[devops_tools_arch] }}"
     mode: "0755"
-    remote_src: true
-  when: kubectl_upgrade_required
-
+    force: true
+  when: kubectl_install_required
 
 ############################
-# TERRAFORM (SHA Driven Idempotent)
+# TERRAFORM (pinned version + pinned SHA256)
 ############################
 
 - name: Check terraform version
-  command: terraform version
+  command: terraform version -json
   register: terraform_check
   changed_when: false
   failed_when: false
 
-- name: Determine if terraform upgrade required
+- name: Determine if terraform install required
   set_fact:
-    terraform_upgrade_required: >-
-      {{
-        (terraform_check.rc != 0)
-        or
-        (terraform_check.stdout is not search(devops_tools_terraform_version))
-      }}
+    terraform_install_required: >-
+      {{ terraform_check.rc != 0
+         or (terraform_check.stdout | from_json).terraform_version != devops_tools_terraform_version }}
 
-- name: Determine terraform architecture suffix
-  set_fact:
-    devops_tools_terraform_arch: "{{ 'arm64' if ansible_architecture in ['aarch64', 'arm64'] else 'amd64' }}"
-  when: terraform_upgrade_required
-
-- name: Download terraform zip if required
-  get_url:
-    url: "https://releases.hashicorp.com/terraform/{{ devops_tools_terraform_version }}/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_terraform_arch }}.zip"
-    dest: "/tmp/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_terraform_arch }}.zip"
-  when: terraform_upgrade_required
-
-- name: Download terraform SHA256SUMS if required
-  get_url:
-    url: "https://releases.hashicorp.com/terraform/{{ devops_tools_terraform_version }}/terraform_{{ devops_tools_terraform_version }}_SHA256SUMS"
-    dest: "/tmp/terraform_{{ devops_tools_terraform_version }}_SHA256SUMS"
-  when: terraform_upgrade_required
-
-- name: Verify terraform zip checksum from upstream manifest
-  shell: |
-    set -eu
-    grep " terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_terraform_arch }}.zip$" /tmp/terraform_{{ devops_tools_terraform_version }}_SHA256SUMS > /tmp/terraform_checksum_line
-    test -s /tmp/terraform_checksum_line
-    cd /tmp
-    sha256sum -c /tmp/terraform_checksum_line
-  changed_when: false
-  when: terraform_upgrade_required
-
-- name: Extract terraform binary
-  unarchive:
-    src: "/tmp/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_terraform_arch }}.zip"
-    dest: /usr/local/bin/
-    remote_src: true
-  when: terraform_upgrade_required
-
-
-############################
-# HELM (SHA Driven Idempotent)
-############################
-
-- name: Resolve helm checksum source
+- name: Install terraform
+  when: terraform_install_required
   block:
-    - name: Use provided helm checksum
-      set_fact:
-        devops_tools_helm_sha256_effective: "{{ devops_tools_helm_sha256 }}"
-      when: devops_tools_helm_sha256 is not match('^REPLACE')
+    - name: Download terraform zip (checksum verified)
+      get_url:
+        url: "https://releases.hashicorp.com/terraform/{{ devops_tools_terraform_version }}/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_arch }}.zip"
+        dest: "/tmp/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_arch }}.zip"
+        checksum: "sha256:{{ devops_tools_terraform_sha256[devops_tools_arch] }}"
+        mode: "0644"
 
-    - name: Fetch helm checksum from upstream
-      uri:
-        url: "https://get.helm.sh/helm-v{{ devops_tools_helm_version }}-linux-amd64.tar.gz.sha256sum"
-        return_content: true
-      register: devops_tools_helm_sha256_remote
-      when: devops_tools_helm_sha256 is match('^REPLACE')
+    - name: Extract terraform binary
+      unarchive:
+        src: "/tmp/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_arch }}.zip"
+        dest: /usr/local/bin/
+        include: [terraform]
+        remote_src: true
+  always:
+    - name: Remove terraform download
+      file:
+        path: "/tmp/terraform_{{ devops_tools_terraform_version }}_linux_{{ devops_tools_arch }}.zip"
+        state: absent
 
-    - name: Extract helm checksum value
-      set_fact:
-        devops_tools_helm_sha256_effective: "{{ (devops_tools_helm_sha256_remote.content | trim).split()[0] }}"
-      when: devops_tools_helm_sha256 is match('^REPLACE')
+############################
+# HELM (pinned version + pinned SHA256)
+############################
 
-- name: Check if helm exists
-  stat:
-    path: /usr/local/bin/helm
-  register: helm_stat
-
-- name: Get current helm sha256
-  command: sha256sum /usr/local/bin/helm
-  register: helm_current_sha
+- name: Check helm version
+  command: helm version --template "{{ '{{' }} .Version {{ '}}' }}"
+  register: helm_check
   changed_when: false
   failed_when: false
-  when: helm_stat.stat.exists
 
-- name: Determine if helm upgrade required
+- name: Determine if helm install required
   set_fact:
-    helm_upgrade_required: >-
-      {{
-        (not helm_stat.stat.exists)
-        or
-        (helm_current_sha.stdout.split()[0] != devops_tools_helm_sha256_effective)
-      }}
+    helm_install_required: "{{ helm_check.rc != 0 or (helm_check.stdout | trim) != ('v' ~ devops_tools_helm_version) }}"
 
-- name: Download helm archive if required
-  get_url:
-    url: "https://get.helm.sh/helm-v{{ devops_tools_helm_version }}-linux-amd64.tar.gz"
-    dest: /tmp/helm.tar.gz
-  when: helm_upgrade_required
+- name: Install helm
+  when: helm_install_required
+  block:
+    - name: Download helm archive (checksum verified)
+      get_url:
+        url: "https://get.helm.sh/helm-v{{ devops_tools_helm_version }}-linux-{{ devops_tools_arch }}.tar.gz"
+        dest: /tmp/helm.tar.gz
+        checksum: "sha256:{{ devops_tools_helm_sha256[devops_tools_arch] }}"
+        mode: "0644"
 
-- name: Verify helm checksum
-  shell: |
-    echo "{{ devops_tools_helm_sha256_effective }}  /tmp/helm.tar.gz" | sha256sum -c -
-  changed_when: false
-  when: helm_upgrade_required
+    - name: Extract helm archive
+      unarchive:
+        src: /tmp/helm.tar.gz
+        dest: /tmp
+        remote_src: true
 
-- name: Extract helm archive
-  unarchive:
-    src: /tmp/helm.tar.gz
-    dest: /tmp
-    remote_src: true
-  when: helm_upgrade_required
-
-- name: Install helm binary
-  copy:
-    src: /tmp/linux-amd64/helm
-    dest: /usr/local/bin/helm
-    mode: "0755"
-    remote_src: true
-  when: helm_upgrade_required
-
+    - name: Install helm binary
+      copy:
+        src: "/tmp/linux-{{ devops_tools_arch }}/helm"
+        dest: /usr/local/bin/helm
+        mode: "0755"
+        remote_src: true
+  always:
+    - name: Remove helm download
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /tmp/helm.tar.gz
+        - "/tmp/linux-{{ devops_tools_arch }}"
 
 ############################
-# AWS CLI
+# AWS CLI (pinned version + PGP signature verified)
 ############################
 
-- name: Check AWS CLI
+- name: Check AWS CLI version
   command: aws --version
   register: aws_check
   changed_when: false
   failed_when: false
 
-- name: Download AWS CLI
-  get_url:
-    url: "{{ devops_tools_awscli_zip_url }}"
-    dest: /tmp/awscliv2.zip
-  when: aws_check.rc != 0
+# `aws --version` prints e.g. "aws-cli/2.40.2 Python/3.13 Linux/..."
+- name: Determine if AWS CLI install required
+  set_fact:
+    awscli_install_required: >-
+      {{ aws_check.rc != 0
+         or (aws_check.stdout | regex_search('aws-cli/([0-9.]+)', '\\1') | first) != devops_tools_awscli_version }}
 
 - name: Install AWS CLI
-  shell: |
-    unzip -o /tmp/awscliv2.zip -d /tmp
-    /tmp/aws/install --update
-  when: aws_check.rc != 0
+  when: awscli_install_required
+  block:
+    - name: Create temporary GnuPG home
+      tempfile:
+        state: directory
+        suffix: awscli-gpg
+      register: awscli_gnupghome
+
+    - name: Copy AWS CLI public key
+      copy:
+        src: awscli-public-key.asc
+        dest: "{{ awscli_gnupghome.path }}/awscli.asc"
+        mode: "0600"
+
+    - name: Verify AWS CLI public key fingerprint
+      shell: |
+        gpg --show-keys --with-colons "{{ awscli_gnupghome.path }}/awscli.asc" | awk -F: '/^fpr/ {print $10; exit}'
+      register: awscli_key_fpr
+      changed_when: false
+
+    - name: Fail if AWS CLI key fingerprint mismatch
+      fail:
+        msg: "AWS CLI public key fingerprint mismatch: {{ awscli_key_fpr.stdout }}"
+      when: awscli_key_fpr.stdout != devops_tools_awscli_gpg_fingerprint
+
+    - name: Download AWS CLI package and signature
+      get_url:
+        url: "https://awscli.amazonaws.com/awscli-exe-linux-{{ devops_tools_awscli_arch }}-{{ devops_tools_awscli_version }}.zip{{ item.ext }}"
+        dest: "{{ awscli_gnupghome.path }}/awscliv2.zip{{ item.ext }}"
+        mode: "0644"
+      loop:
+        - { ext: "" }
+        - { ext: ".sig" }
+
+    - name: Verify AWS CLI package signature
+      shell: |
+        set -eu
+        export GNUPGHOME="{{ awscli_gnupghome.path }}"
+        gpg --batch --quiet --import awscli.asc
+        gpg --batch --status-fd 1 --verify awscliv2.zip.sig awscliv2.zip | grep -q "^\[GNUPG:\] VALIDSIG {{ devops_tools_awscli_gpg_fingerprint }} "
+      args:
+        chdir: "{{ awscli_gnupghome.path }}"
+      changed_when: false
+
+    - name: Extract AWS CLI
+      unarchive:
+        src: "{{ awscli_gnupghome.path }}/awscliv2.zip"
+        dest: "{{ awscli_gnupghome.path }}"
+        remote_src: true
+
+    - name: Install AWS CLI
+      command: "{{ awscli_gnupghome.path }}/aws/install --update"
+  always:
+    - name: Remove AWS CLI install workspace
+      file:
+        path: "{{ awscli_gnupghome.path }}"
+        state: absent
+      when: awscli_gnupghome.path is defined

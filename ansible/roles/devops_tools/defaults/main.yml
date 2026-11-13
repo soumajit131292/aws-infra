@@ -1,14 +1,36 @@
 ---
-devops_tools_kubectl_version: "1.29.1"
-devops_tools_kubectl_sha256: "REPLACE_REAL_SHA"
+# Pinned versions + expected SHA256 per architecture. The checksums are pinned
+# here (not fetched from the download host), so a tampered release that also
+# swaps its published .sha256 is still rejected. On a version bump, update the
+# version and both checksums together.
 
-devops_tools_terraform_version: "1.6.6"
-devops_tools_terraform_sha256: "REPLACE_REAL_SHA"
+# kubectl: keep within one minor version of the EKS clusters (1.34).
+# https://dl.k8s.io/release/v<ver>/bin/linux/<arch>/kubectl.sha256
+devops_tools_kubectl_version: "1.34.13"
+devops_tools_kubectl_sha256:
+  amd64: "b4bb494e9466a7a94bb851414548bc0d3e2f8da90757e6eccc3371e648648591"
+  arm64: "66e8283d52d9bc1f9c0e9daade7c971cd20db5a379306862897dfb25395f3e03"
 
+# terraform: match the version used to write the S3 state (laptop/bastion).
+# https://releases.hashicorp.com/terraform/<ver>/terraform_<ver>_SHA256SUMS
+devops_tools_terraform_version: "1.15.8"
+devops_tools_terraform_sha256:
+  amd64: "d25ce7b6902013ad905db3d2eab0be4cd905887fe88b81a6171b8d5503c31f3d"
+  arm64: "8891e9dcedc9e3b8950bc6af9d4d8af1f4cfade3062f53b9dc403a89f6ce8c9c"
+
+# helm: checksum is of the release tarball.
+# https://get.helm.sh/helm-v<ver>-linux-<arch>.tar.gz.sha256sum
 devops_tools_helm_version: "3.14.0"
-devops_tools_helm_sha256: "REPLACE_REAL_SHA"
+devops_tools_helm_sha256:
+  amd64: "f43e1c3387de24547506ab05d24e5309c0ce0b228c23bd8aa64e9ec4b8206651"
+  arm64: "b29e61674731b15f6ad3d1a3118a99d3cc2ab25a911aad1b8ac8c72d5a9d2952"
 
-devops_tools_docker_version: "5:24.0.7-1~ubuntu.24.04~noble"
+# docker: exact APT version; the run fails (no silent "latest") if unavailable.
+devops_tools_docker_version: "5:29.9.3-1~ubuntu.24.04~noble"
 devops_tools_docker_gpg_expected_fingerprint: "9DC858229FC7DD38854AE2D88D81803C0EBFCD88"
 
-devops_tools_awscli_zip_url: "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip"
+# aws-cli v2: pinned version, verified against the AWS CLI Team PGP signature.
+# Key from https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+# (expires 2027-07-01 — refresh the key block below when AWS rotates it).
+devops_tools_awscli_version: "2.40.2"
+devops_tools_awscli_gpg_fingerprint: "FB5DB77FD5C118B80511ADA8A6310ACC4672475C"

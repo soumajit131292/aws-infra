@@ -52,3 +52,26 @@ module "eks" {
 
   tags = var.tags
 }
+
+#############################################
+# Cluster-admin for the QA jumphost
+#
+# The QA API endpoint is private, so kubectl/helm/Terraform add-on runs go
+# through the QA jumphost (envs/qa/eu-west-1/ubuntu-jumphost-vm). It uses the
+# QA VPC's EC2 SSM role. QA-only: nothing here grants access to prod.
+#############################################
+resource "aws_eks_access_entry" "qa_jumphost" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = data.terraform_remote_state.vpc.outputs.ec2_ssm_role_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "qa_jumphost" {
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_eks_access_entry.qa_jumphost.principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+}

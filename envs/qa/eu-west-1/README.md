@@ -10,6 +10,29 @@ keys, `qa-` names everywhere. No QA stack reads prod state.
 | `vpc` | `network/qa/eu-west-1/vpc/terraform.tfstate` | `10.40.0.0/16`, single NAT gateway |
 | `eks` | `eks/qa/eu-west-1/control-plane/terraform.tfstate` | `qa-accesshub-cluster`, `m6i.large` core nodes, no spot runners, no EFS backup |
 | `aurora-postgres` | `database/qa/eu-west-1/aurora-postgres/terraform.tfstate` | standalone (no global), 1 x `db.t4g.medium`, RDS Proxy, deletion protection off |
+| `ubuntu-jumphost-vm` | `compute/qa/eu-west-1/ubuntu-jumphost-vm/terraform.tfstate` | `qa-ubuntu-jumphost`, `t3.small`, private, SSM only |
+| `acm/accesshub-identity` | `acm/qa/eu-west-1/accesshub-identity/terraform.tfstate` | `qa.accesshub-identity.com`, DNS-validated in the public zone `accesshub-identity.com` |
+| `route53-accesshub` | `dns/qa/eu-west-1/route53-accesshub/terraform.tfstate` | Private zone `accesshub.internal` on the **QA VPC only**: `db-primary` → QA RDS Proxy, `db` → `db-primary`, `db-reader` → QA reader |
+
+## Jumphost (the only way into the QA cluster)
+
+The QA EKS API endpoint is private and the QA VPC is not peered with prod, so
+`kubectl`, `helm` and the add-on Terraform stacks run from the QA jumphost.
+
+1. Apply `ubuntu-jumphost-vm`.
+2. Re-apply `eks`. It adds an access entry giving the jumphost's role
+   (`qa-eu-west-1-vpc-ec2-ssm-role`) cluster-admin on the QA cluster only.
+3. Install tools with Ansible (always limit to QA):
+   ```bash
+   cd ansible
+   ansible env_qa -m ping
+   ansible-playbook playbook-tools.yml --limit env_qa
+   ```
+4. On the jumphost (via SSM):
+   ```bash
+   aws eks update-kubeconfig --region eu-west-1 --name qa-accesshub-cluster
+   kubectl get nodes
+   ```
 
 ## Differences from prod
 
@@ -62,8 +85,27 @@ Before each apply, confirm the plan only creates `qa-*` resources and shows
 Aurora Global Database, EFS replication, DR (prod-dr, dr-failover), Wazuh,
 Zeek, security log pipeline, ALB log Athena.
 
-## Next (optional, not built yet)
+## EKS add-ons (`eks-add-on/`)
 
-EKS add-ons (alb-controller, external-secrets, argocd), ACM certificate
-`qa-aws.accesshub-identity.com`, private zone `accesshub.internal` for the QA
-VPC, GitHub OIDC role, WAF, jumphost, monitoring, Aurora alarms.
+These call the cluster API, so apply them **from the QA jumphost**, in order:
+
+| Stack | State key | QA specifics |
+|-------|-----------|--------------|
+| `alb-controller` | `eks-add-on/qa/eu-west-1/alb-controller/terraform.tfstate` | IRSA role `qa-accesshub-cluster-alb-controller`; own log bucket `qa-accesshub-alb-access-logs-<acct>-<region>` |
+| `external-secrets` | `eks-add-on/qa/eu-west-1/external-secrets/terraform.tfstate` | Reads **`qa/*` secrets only** (validation blocks `*` and prod ARNs) |
+| `argocd` | `eks-add-on/qa/eu-west-1/argocd/terraform.tfstate` | Own ALB `qa-argocd-alb` / group `qa-argocd`; **`inbound_cidrs` required**; no WAF (prod's is not reused) |
+
+Before `argocd`: set `inbound_cidrs` in `eks-add-on/argocd/terraform.tfvars`
+to your office/VPN egress CIDRs — the plan fails until you do.
+
+Images come from the existing `thirdparty/*` ECR mirrors (same account and
+region), so nothing needs mirroring for QA.
+
+## Next — required before the app can run (not built yet)
+
+Public DNS record `qa.accesshub-identity.com` → QA app ALB (after the app's
+ALB exists), `values-qa.yaml` and the QA Argo CD application.
+
+## Optional (not built yet)
+
+GitHub OIDC role, WAF, monitoring, Aurora alarms.
