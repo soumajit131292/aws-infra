@@ -13,6 +13,7 @@ keys, `qa-` names everywhere. No QA stack reads prod state.
 | `ubuntu-jumphost-vm` | `compute/qa/eu-west-1/ubuntu-jumphost-vm/terraform.tfstate` | `qa-ubuntu-jumphost`, `t3.small`, private, SSM only |
 | `acm/accesshub-identity` | `acm/qa/eu-west-1/accesshub-identity/terraform.tfstate` | `qa.accesshub-identity.com`, DNS-validated in the public zone `accesshub-identity.com` |
 | `route53-accesshub` | `dns/qa/eu-west-1/route53-accesshub/terraform.tfstate` | Private zone `accesshub.internal` on the **QA VPC only**: `db-primary` → QA RDS Proxy, `db` → `db-primary`, `db-reader` → QA reader |
+| `waf-accesshub` | `waf/qa/eu-west-1/accesshub/terraform.tfstate` | `qa-accesshub-waf`, same 7 AWS managed rule groups as prod; own log group `aws-waf-logs-qa-accesshub-waf` |
 
 ## Jumphost (the only way into the QA cluster)
 
@@ -93,10 +94,9 @@ These call the cluster API, so apply them **from the QA jumphost**, in order:
 |-------|-----------|--------------|
 | `alb-controller` | `eks-add-on/qa/eu-west-1/alb-controller/terraform.tfstate` | IRSA role `qa-accesshub-cluster-alb-controller`; own log bucket `qa-accesshub-alb-access-logs-<acct>-<region>` |
 | `external-secrets` | `eks-add-on/qa/eu-west-1/external-secrets/terraform.tfstate` | Reads **`qa/*` secrets only** (validation blocks `*` and prod ARNs) |
-| `argocd` | `eks-add-on/qa/eu-west-1/argocd/terraform.tfstate` | Own ALB `qa-argocd-alb` / group `qa-argocd`; **`inbound_cidrs` required**; no WAF (prod's is not reused) |
+| `argocd` | `eks-add-on/qa/eu-west-1/argocd/terraform.tfstate` | Same as prod (internet-facing ALB + WAF), with QA's own WAF and ALB `qa-argocd-alb` / group `qa-argocd`. Apply `waf-accesshub` first |
 
-Before `argocd`: set `inbound_cidrs` in `eks-add-on/argocd/terraform.tfvars`
-to your office/VPN egress CIDRs — the plan fails until you do.
+Apply `waf-accesshub` before `argocd` (argocd reads the QA web ACL ARN from its state).
 
 Images come from the existing `thirdparty/*` ECR mirrors (same account and
 region), so nothing needs mirroring for QA.
@@ -108,4 +108,4 @@ ALB exists), `values-qa.yaml` and the QA Argo CD application.
 
 ## Optional (not built yet)
 
-GitHub OIDC role, WAF, monitoring, Aurora alarms.
+GitHub OIDC role, monitoring, Aurora alarms.

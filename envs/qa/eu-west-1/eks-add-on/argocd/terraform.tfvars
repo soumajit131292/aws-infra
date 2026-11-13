@@ -41,10 +41,3 @@ values = [
                       name: '{{ .Values.server.service.servicePortHttpName }}'
   EOT
 ]
-
-# REQUIRED: who may reach the QA Argo CD UI. Internet-facing ALB, HTTP, no WAF
-# in QA — restrict it to your office/VPN egress IPs (e.g. "203.0.113.10/32").
-inbound_cidrs = ["REPLACE_WITH_OFFICE_OR_VPN_CIDR"]
-
-# Optional: a QA WAFv2 web ACL ARN. Leave empty; never the prod ACL.
-waf_acl_arn = ""

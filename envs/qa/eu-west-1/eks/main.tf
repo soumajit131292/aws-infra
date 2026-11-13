@@ -105,3 +105,31 @@ resource "aws_iam_role_policy" "qa_jumphost_eks_describe" {
     }]
   })
 }
+
+#############################################
+# Cluster-admin for the people who run the QA add-on stacks
+#
+# The add-on stacks (envs/qa/eu-west-1/eks-add-on/*) are applied from the QA
+# jumphost with an admin SSO profile, not the jumphost's own role (that role
+# cannot read Terraform state or create IAM). The helm/kubernetes providers
+# authenticate as that same SSO identity, so it needs an access entry here.
+#############################################
+resource "aws_eks_access_entry" "admins" {
+  for_each = toset(var.cluster_admin_principal_arns)
+
+  cluster_name  = module.eks.cluster_name
+  principal_arn = each.value
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "admins" {
+  for_each = toset(var.cluster_admin_principal_arns)
+
+  cluster_name  = module.eks.cluster_name
+  principal_arn = aws_eks_access_entry.admins[each.value].principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+}

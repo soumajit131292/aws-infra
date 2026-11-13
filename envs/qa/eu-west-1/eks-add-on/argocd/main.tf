@@ -10,16 +10,13 @@ module "argocd" {
   # atomic           = var.atomic
   values_files = var.values_files
   values       = var.values
+  # Same exposure as prod (internet-facing ALB + WAF), using QA's own WAF.
   set = merge(
     var.set,
     {
       "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/subnets"       = join("\\,", data.aws_subnets.alb_public.ids)
-      "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/inbound-cidrs" = join("\\,", var.inbound_cidrs)
-    },
-    # QA has no WAF yet. Set waf_acl_arn to a QA web ACL to attach one; never
-    # point it at the prod ACL.
-    var.waf_acl_arn != "" ? {
-      "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/wafv2-acl-arn" = var.waf_acl_arn
-    } : {}
+      "server.ingress.annotations.alb\\.ingress\\.kubernetes\\.io/wafv2-acl-arn" = data.terraform_remote_state.waf.outputs.web_acl_arn
+    }
   )
+
 }

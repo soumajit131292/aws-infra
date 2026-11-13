@@ -18,3 +18,8 @@ tags = {
   Project     = "crave"
   ManagedBy   = "terraform"
 }
+
+# IAM role ARN of the admin identity that applies the QA add-on stacks from the
+# QA jumphost (Identity Center roles include the aws-reserved/... path).
+# Find it: aws iam list-roles --query "Roles[?contains(RoleName,'AWSReservedSSO')].Arn"
+cluster_admin_principal_arns = []

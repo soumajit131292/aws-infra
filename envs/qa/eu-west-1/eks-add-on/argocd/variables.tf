@@ -63,19 +63,3 @@ variable "manage_namespace" {
   type        = bool
   default     = false
 }
-
-variable "waf_acl_arn" {
-  description = "Optional QA WAFv2 web ACL ARN for the Argo CD ALB. Empty = no WAF."
-  type        = string
-  default     = ""
-}
-
-variable "inbound_cidrs" {
-  description = "CIDRs allowed to reach the Argo CD ALB (alb.ingress.kubernetes.io/inbound-cidrs). The ALB is internet-facing on HTTP with no WAF in QA, so keep this to office/VPN ranges."
-  type        = list(string)
-
-  validation {
-    condition     = length(var.inbound_cidrs) > 0 && !contains(var.inbound_cidrs, "0.0.0.0/0") && alltrue([for c in var.inbound_cidrs : can(cidrhost(c, 0))])
-    error_message = "Set inbound_cidrs in terraform.tfvars to your office/VPN CIDRs (valid CIDRs, not 0.0.0.0/0)."
-  }
-}

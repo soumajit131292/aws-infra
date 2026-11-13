@@ -90,3 +90,14 @@ variable "metrics_server_addon_version" {
   type        = string
   default     = ""
 }
+
+variable "cluster_admin_principal_arns" {
+  description = "IAM role ARNs (not STS assumed-role ARNs) granted cluster-admin on the QA cluster, e.g. the Identity Center admin role used to apply the add-on stacks."
+  type        = list(string)
+  default     = []
+
+  validation {
+    condition     = alltrue([for a in var.cluster_admin_principal_arns : can(regex("^arn:aws:iam::[0-9]{12}:role/", a))])
+    error_message = "Use the IAM role ARN (arn:aws:iam::<acct>:role/...), not the arn:aws:sts::...:assumed-role/... ARN from get-caller-identity."
+  }
+}

@@ -30,3 +30,14 @@ data "aws_subnets" "alb_public" {
     "kubernetes.io/cluster/${data.terraform_remote_state.eks.outputs.cluster_name}" = "shared"
   }
 }
+
+# QA's own WAF (envs/qa/eu-west-1/waf-accesshub) — never the prod ACL.
+data "terraform_remote_state" "waf" {
+  backend = "s3"
+
+  config = {
+    bucket = "crave-infra-terraform-state-bucket"
+    key    = "waf/qa/eu-west-1/accesshub/terraform.tfstate"
+    region = "us-east-1"
+  }
+}
