@@ -5,9 +5,14 @@ provider "aws" {
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
 
-# Same ECR scope as the prod role: QA images go to the shared accesshub/*
-# repositories, tagged sha-<commit>, and each environment deploys its own digest
-# from its own values file.
+locals {
+  ecr_arn_prefix = "arn:aws:ecr:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:repository"
+}
+
+# QA pushes only to its own accesshub-qa/* repositories (envs/qa/eu-west-1/ecr).
+# It can read, but never write, the shared base images the Dockerfiles build
+# FROM: thirdparty/* and the health-aggregator python base, which lives at
+# accesshub/health-aggregator:python-3.12-slim-amd64-platform.
 data "aws_iam_policy_document" "github_policy" {
   statement {
     effect    = "Allow"
@@ -16,6 +21,7 @@ data "aws_iam_policy_document" "github_policy" {
   }
 
   statement {
+    sid    = "PushQaImages"
     effect = "Allow"
     actions = [
       "ecr:DescribeRepositories",
@@ -27,10 +33,21 @@ data "aws_iam_policy_document" "github_policy" {
       "ecr:PutImage",
       "ecr:GetDownloadUrlForLayer"
     ]
+    resources = ["${local.ecr_arn_prefix}/accesshub-qa/*"]
+  }
 
+  statement {
+    sid    = "PullBaseImages"
+    effect = "Allow"
+    actions = [
+      "ecr:DescribeRepositories",
+      "ecr:BatchCheckLayerAvailability",
+      "ecr:BatchGetImage",
+      "ecr:GetDownloadUrlForLayer"
+    ]
     resources = [
-      "arn:aws:ecr:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:repository/accesshub/*",
-      "arn:aws:ecr:${data.aws_region.current.region}:${data.aws_caller_identity.current.account_id}:repository/thirdparty/*"
+      "${local.ecr_arn_prefix}/thirdparty/*",
+      "${local.ecr_arn_prefix}/accesshub/health-aggregator"
     ]
   }
 }
