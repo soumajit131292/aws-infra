@@ -1,0 +1,39 @@
+# Apply on the QA Argo CD only (QA cluster). It deploys to that same cluster
+# (kubernetes.default.svc) and never targets prod.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: accesshub-qa
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/CraveGit/CRAVE_INT_ACCESSHUB_cicd.git
+    targetRevision: main
+    path: helm/accesshub
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-qa.yaml
+      parameters:
+        - name: tenantBootstrap.enabled
+          value: "false"
+        - name: healthAggregator.enabled
+          value: "false"
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: accesshub
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - ApplyOutOfSyncOnly=true
+      - RespectIgnoreDifferences=true

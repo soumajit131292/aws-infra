@@ -1,0 +1,61 @@
+# QA health aggregator (eu-west-1) — from values-health-prod.yaml with prod
+# values swapped for QA's. It joins the QA app ALB (group accesshub-qa) at
+# /region-healthz, so the ALB annotations must match values-qa.yaml.
+# Fill REPLACE_WITH_QA_CERT_ARN / REPLACE_WITH_QA_WAF_ARN from the QA Terraform
+# outputs, as in values-qa.yaml.
+global:
+  imageRegistry: 495711089104.dkr.ecr.eu-west-1.amazonaws.com
+ingress:
+  enabled: true
+  className: alb
+  host: ''
+  annotations:
+    alb.ingress.kubernetes.io/load-balancer-name: accesshub-qa-alb
+    alb.ingress.kubernetes.io/load-balancer-attributes: access_logs.s3.enabled=true,access_logs.s3.bucket=qa-accesshub-alb-access-logs-495711089104-eu-west-1,access_logs.s3.prefix=alb/accesshub,deletion_protection.enabled=false,idle_timeout.timeout_seconds=1800
+    alb.ingress.kubernetes.io/wafv2-acl-arn: REPLACE_WITH_QA_WAF_ARN
+    alb.ingress.kubernetes.io/group.name: accesshub-qa
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/inbound-cidrs: 0.0.0.0/0
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/backend-protocol: HTTP
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: REPLACE_WITH_QA_CERT_ARN
+    alb.ingress.kubernetes.io/success-codes: 200-399
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/listener-attributes.HTTPS-443: routing.http.response.server.enabled=false,routing.http.response.x_content_type_options.header_value=nosniff,routing.http.response.x_frame_options.header_value=SAMEORIGIN,routing.http.response.access_control_allow_origin.header_value=https://qa.accesshub-identity.com,routing.http.response.access_control_allow_methods.header_value=GET,POST,PUT,DELETE,OPTIONS,routing.http.response.access_control_allow_headers.header_value=Content-Type,Authorization,routing.http.response.access_control_allow_credentials.header_value=true
+services:
+  ahschedular:
+    port: 8070
+  adminsvc:
+    port: 8107
+  apponbsvc:
+    port: 8108
+  loginmodsvc:
+    port: 8098
+  gatewaysvc:
+    repository: accesshub/gatewaysvc
+    digest: sha256:5e1bd3ca06d4fe29f976abecdcc81558265bb9cba5b2588bd5fcf0b521a94523
+    port: 8082
+  pgmodsvc:
+    port: 8095
+  scimpersist:
+    port: 8091
+healthAggregator:
+  enabled: true
+  upstreamReleaseName: accesshub-qa
+  replicaCount: 1
+  image:
+    repository: accesshub/health-aggregator
+    digest: sha256:81a7052bb7548e56aca5d12bf72ddb8466db9f21bf5f17698eb118caf93659e4
+  resources:
+    requests:
+      cpu: 30m
+      memory: 100Mi
+    limits:
+      cpu: 30m
+      memory: 100Mi
+  ingress:
+    enabled: true
+    path: /region-healthz
+    pathType: Prefix
+    healthCheckPath: /healthz
