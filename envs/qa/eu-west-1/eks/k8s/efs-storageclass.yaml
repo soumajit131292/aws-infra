@@ -1,0 +1,19 @@
+# QA app EFS StorageClass — QA's own file system, never prod's.
+# Fill fileSystemId from the QA EKS stack:
+#   cd envs/qa/eu-west-1/eks && terraform output -raw efs_file_system_id
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: efs-sc
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: REPLACE_WITH_QA_EFS_FILE_SYSTEM_ID
+  directoryPerms: "700"
+  gidRangeStart: "1000"
+  gidRangeEnd: "2000"
+  basePath: "/dynamic-provisioning"
+mountOptions:
+  - tls
+reclaimPolicy: Retain
+volumeBindingMode: Immediate

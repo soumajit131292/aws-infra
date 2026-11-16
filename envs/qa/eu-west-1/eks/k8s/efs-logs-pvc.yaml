@@ -1,0 +1,14 @@
+# Region-local logs PVC consumed by accesshub helm chart's persistentLogs.
+# Mount path /app/log is unchanged; only the underlying EFS differs from efs-claim.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: efs-logs-claim
+  namespace: accesshub
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: efs-logs-sc
+  resources:
+    requests:
+      storage: 10Gi
