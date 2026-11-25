@@ -3,6 +3,13 @@ output "certificate_arn" {
   value       = module.acm_public_cert.certificate_arn
 }
 
+output "replacement_certificate_arn" {
+  description = "Parallel replacement certificate ARN. Null when replacement issuance is disabled."
+  value = var.issue_replacement_certificate ? (
+    var.wait_for_validation ? aws_acm_certificate_validation.replacement[0].certificate_arn : aws_acm_certificate.replacement[0].arn
+  ) : null
+}
+
 output "certificate_domain_name" {
   description = "Primary FQDN on the issued certificate."
   value       = module.acm_public_cert.certificate_domain_name

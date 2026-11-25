@@ -31,6 +31,12 @@ variable "wait_for_validation" {
   default     = true
 }
 
+variable "issue_replacement_certificate" {
+  description = "Issue a parallel DNS-validated certificate for rotation. Keep enabled until the replacement is deployed and the old certificate is retired."
+  type        = bool
+  default     = false
+}
+
 variable "tags" {
   type    = map(string)
   default = {}
