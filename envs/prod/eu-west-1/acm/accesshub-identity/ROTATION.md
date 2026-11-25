@@ -27,6 +27,12 @@ The validation resource waits for ACM to issue the certificate. The existing
 DNS validation CNAME is shared for the same account and domain; ACM allows it
 to validate additional certificates.
 
+After issuance, keep `wait_for_validation = false` while the expired original
+certificate remains in this stack. This removes Terraform's old validation
+waiter, which otherwise keeps polling the expired certificate and causes an
+apply error. The replacement certificate itself remains managed by
+`aws_acm_certificate.replacement[0]` and is exposed by the replacement output.
+
 ## Deploy the new ARN
 
 Replace the old ARN with the output ARN in these files:
